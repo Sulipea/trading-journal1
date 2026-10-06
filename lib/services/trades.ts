@@ -17,6 +17,10 @@ import type {
   PsychologyEntry,
   PsychologyPhase,
   RequirableField,
+  Rule,
+  RuleCheck,
+  RuleGroup,
+  Setup,
   Trade,
   TradeEvent,
   TradeEventType,
@@ -24,8 +28,13 @@ import type {
   TrashItem,
 } from "@/lib/domain/types";
 import type { JournalRepositories } from "@/lib/repositories/types";
+import { applicableRules } from "@/lib/domain/checklist";
 import { checkCloseReadiness, type CloseReadiness } from "./close-validation";
 import { computeTradeMetrics, type TradeMetrics } from "./trade-metrics";
+import { qualityForTrade } from "./trade-quality";
+import type { TradeQuality } from "@/lib/calculations/quality";
+import { suggestSetupForTrade } from "@/lib/analytics/setup-discovery";
+import type { TradeResultRow } from "@/lib/analytics/stats";
 
 export const TRADE_ENTITY = "trade";
 
@@ -167,20 +176,43 @@ function assertFillsValid(trade: Trade, events: readonly TradeEvent[]): void {
   }
 }
 
+/** The trade's setup, the rules on its checklist and its answers. */
+export async function loadRuleContext(
+  repos: JournalRepositories,
+  trade: Trade,
+  checksOverride?: readonly RuleCheck[],
+): Promise<{ setup: Setup | null; rules: Rule[]; ruleChecks: RuleCheck[] }> {
+  const [setup, allRules, links, checks] = await Promise.all([
+    trade.setupId ? repos.setups.get(trade.setupId) : Promise.resolve(undefined),
+    repos.rules.list(),
+    trade.setupId ? repos.setups.listRules(trade.setupId) : Promise.resolve([]),
+    checksOverride ? Promise.resolve([...checksOverride]) : repos.ruleChecks.listForTrade(trade.id),
+  ]);
+  return {
+    setup: setup ?? null,
+    rules: applicableRules(allRules, trade.setupId, links, checks),
+    ruleChecks: checks,
+  };
+}
+
+export interface ReadinessOverrides {
+  events?: readonly TradeEvent[];
+  psychology?: readonly PsychologyEntry[];
+  screenshotCount?: number;
+  ruleChecks?: readonly RuleCheck[];
+}
+
 async function readinessFor(
   repos: JournalRepositories,
   trade: Trade,
-  overrides: {
-    events?: readonly TradeEvent[];
-    psychology?: readonly PsychologyEntry[];
-    screenshotCount?: number;
-  } = {},
+  overrides: ReadinessOverrides = {},
 ): Promise<CloseReadiness> {
-  const [events, psychology, screenshots, settings] = await Promise.all([
+  const [events, psychology, screenshots, settings, ruleContext] = await Promise.all([
     overrides.events ?? repos.tradeEvents.listForTrade(trade.id),
     overrides.psychology ?? repos.psychology.listForTrade(trade.id),
     repos.screenshots.listForTrade(trade.id),
     repos.settings.getApp(),
+    loadRuleContext(repos, trade, overrides.ruleChecks),
   ]);
   return checkCloseReadiness({
     trade,
@@ -188,6 +220,7 @@ async function readinessFor(
     psychology,
     screenshotCount: overrides.screenshotCount ?? screenshots.length,
     requiredFields: settings.requiredFields,
+    ...ruleContext,
   });
 }
 
@@ -195,7 +228,7 @@ async function readinessFor(
 export async function assertStillComplete(
   repos: JournalRepositories,
   trade: Trade,
-  overrides?: Parameters<typeof readinessFor>[2],
+  overrides?: ReadinessOverrides,
 ): Promise<void> {
   if (trade.status !== "CLOSED") return;
   const readiness = await readinessFor(repos, trade, overrides);
@@ -204,6 +237,12 @@ export async function assertStillComplete(
       "Closed trades must stay complete. Fill in the required fields or leave them unchanged.",
       "INCOMPLETE",
       readiness.missing,
+    );
+  }
+  if (readiness.ruleIssues.length > 0) {
+    throw new TradeServiceError(
+      "Closed trades must keep a complete rules checklist.",
+      "INCOMPLETE",
     );
   }
 }
@@ -441,7 +480,9 @@ export async function closeTrade(
     if (!readiness.canClose) {
       const message = !readiness.positionFlat
         ? "Exit every open contract before closing the trade."
-        : "Complete the required fields before closing the trade.";
+        : readiness.missing.length > 0
+          ? "Complete the required fields before closing the trade."
+          : `Complete the rules checklist before closing: ${readiness.ruleIssues.map((i) => i.ruleName).join(", ")}.`;
       throw new TradeServiceError(message, "INCOMPLETE", readiness.missing);
     }
 
@@ -536,6 +577,7 @@ export async function permanentlyDelete(repos: JournalRepositories, tradeId: Ent
     await repos.assets.delete(screenshots.flatMap((s) => [s.assetId, s.thumbnailAssetId]));
     await repos.tradeEvents.deleteForTrade(tradeId);
     await repos.psychology.deleteForTrade(tradeId);
+    await repos.ruleChecks.deleteForTrade(tradeId);
     await repos.changeHistory.deleteForEntity(TRADE_ENTITY, tradeId);
     await repos.trash.deleteForEntity(tradeId);
     await repos.trades.delete(tradeId);
@@ -553,6 +595,16 @@ export interface TradeWorkspace {
   settings: AppSettings;
   readiness: CloseReadiness;
   metrics: TradeMetrics;
+  quality: TradeQuality;
+  setup: Setup | null;
+  /** All setups (for the picker and names); archived ones are not offered for new choices. */
+  setups: Setup[];
+  /** Rules on this trade's checklist, and its answers. */
+  rules: Rule[];
+  ruleChecks: RuleCheck[];
+  ruleGroups: RuleGroup[];
+  /** A setup the trade's notes point to, when it has none. Only a suggestion. */
+  suggestedSetup: Setup | null;
 }
 
 /** Everything the trade workspace shows, loaded in one call. */
@@ -561,13 +613,17 @@ export async function loadTradeWorkspace(
   tradeId: EntityId,
 ): Promise<TradeWorkspace> {
   const trade = await loadTrade(repos, tradeId);
-  const [events, psychology, screenshots, history, settings] = await Promise.all([
+  const [events, psychology, screenshots, history, settings, ruleContext, setups, ruleGroups] = await Promise.all([
     repos.tradeEvents.listForTrade(tradeId),
     repos.psychology.listForTrade(tradeId),
     repos.screenshots.listForTrade(tradeId),
     repos.changeHistory.listForEntity(TRADE_ENTITY, tradeId),
     repos.settings.getApp(),
+    loadRuleContext(repos, trade),
+    repos.setups.list(),
+    repos.rules.listGroups(),
   ]);
+  const metrics = computeTradeMetrics(trade, events);
   return {
     trade,
     events,
@@ -581,14 +637,24 @@ export async function loadTradeWorkspace(
       psychology,
       screenshotCount: screenshots.length,
       requiredFields: settings.requiredFields,
+      ...ruleContext,
     }),
-    metrics: computeTradeMetrics(trade, events),
+    metrics,
+    quality: qualityForTrade(trade, metrics, ruleContext.ruleChecks),
+    setup: ruleContext.setup,
+    setups,
+    rules: ruleContext.rules,
+    ruleChecks: ruleContext.ruleChecks,
+    ruleGroups,
+    suggestedSetup: suggestSetupForTrade(trade, setups),
   };
 }
 
 export interface TradeListRow {
   trade: Trade;
   metrics: TradeMetrics;
+  quality: TradeQuality;
+  setupName: string | null;
 }
 
 export async function listTradeRows(
@@ -597,6 +663,60 @@ export async function listTradeRows(
 ): Promise<TradeListRow[]> {
   const all = await repos.trades.list({ includeDeleted: options.deleted });
   const trades = options.deleted ? all.filter((t) => t.deletedAt !== null) : all;
-  const events = await repos.tradeEvents.listForTrades(trades.map((t) => t.id));
-  return trades.map((trade) => ({ trade, metrics: computeTradeMetrics(trade, events.get(trade.id) ?? []) }));
+  const [events, checks, setups] = await Promise.all([
+    repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
+    repos.ruleChecks.listAll(),
+    repos.setups.list(),
+  ]);
+  const checksByTrade = groupBy(checks, (c) => c.tradeId);
+  const setupNames = new Map(setups.map((s) => [s.id, s.name]));
+  return trades.map((trade) => {
+    const metrics = computeTradeMetrics(trade, events.get(trade.id) ?? []);
+    return {
+      trade,
+      metrics,
+      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? []),
+      setupName: trade.setupId ? (setupNames.get(trade.setupId) ?? null) : null,
+    };
+  });
+}
+
+/**
+ * Closed, non-deleted trades with their net P&L, R and quality — the input
+ * for setup and rule analytics.
+ */
+export async function loadClosedResultRows(repos: JournalRepositories): Promise<{
+  rows: TradeResultRow[];
+  checks: RuleCheck[];
+}> {
+  const trades = await repos.trades.listClosed();
+  const [events, checks] = await Promise.all([
+    repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
+    repos.ruleChecks.listAll(),
+  ]);
+  const checksByTrade = groupBy(checks, (c) => c.tradeId);
+  const rows: TradeResultRow[] = [];
+  for (const trade of trades) {
+    const metrics = computeTradeMetrics(trade, events.get(trade.id) ?? []);
+    if (!metrics.fills?.isFlat) continue;
+    rows.push({
+      trade,
+      netPnl: metrics.fills.netPnl,
+      rMultiple: metrics.rMultiple,
+      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? []),
+    });
+  }
+  const closedIds = new Set(rows.map((r) => r.trade.id));
+  return { rows, checks: checks.filter((c) => closedIds.has(c.tradeId)) };
+}
+
+function groupBy<T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    const list = map.get(k);
+    if (list) list.push(item);
+    else map.set(k, [item]);
+  }
+  return map;
 }
