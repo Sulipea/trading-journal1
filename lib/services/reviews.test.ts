@@ -80,6 +80,14 @@ describe("review sync", () => {
   });
 });
 
+describe("concurrent syncs", () => {
+  it("never creates duplicate reviews when several pages sync at once", async () => {
+    await trade("2026-09-30", 5010);
+    await Promise.all([syncReviews(repos), syncReviews(repos), syncReviews(repos)]);
+    expect(await repos.reviews.list()).toHaveLength(2); // one weekly, one monthly
+  });
+});
+
 describe("trade review", () => {
   it("is available once a trade is closed, with similar trades from history", async () => {
     await trade("2026-09-29", 5010, "Calm");

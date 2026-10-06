@@ -103,31 +103,43 @@ async function generate(
 ): Promise<Review> {
   const { drafts, rows } = draftsFor(ctx, period);
   const netPnl = Math.round(rows.reduce((s, r) => s + r.netPnl, 0) * 100) / 100;
-  const review: Review = {
-    id: existing?.id ?? newId(),
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-    kind: period.kind,
-    periodStart: period.start,
-    periodEnd: period.end,
-    status: period.end < ctx.data.today ? "COMPLETE" : "OPEN",
-    generatedAt: now,
-    tradeCount: rows.length,
-    netPnl,
-    notes: existing?.notes ?? "",
-  };
-  await repos.transaction(async () => {
+  return repos.transaction(async () => {
+    // Re-read inside the transaction so a concurrent sync can't create a duplicate.
+    const current = (await repos.reviews.getByPeriod(period.kind, period.start)) ?? existing;
+    const review: Review = {
+      id: current?.id ?? newId(),
+      createdAt: current?.createdAt ?? now,
+      updatedAt: now,
+      kind: period.kind,
+      periodStart: period.start,
+      periodEnd: period.end,
+      status: period.end < ctx.data.today ? "COMPLETE" : "OPEN",
+      generatedAt: now,
+      tradeCount: rows.length,
+      netPnl,
+      notes: current?.notes ?? "",
+    };
     await repos.reviews.save(review);
     await upsertFindings(repos, review.id, drafts, now);
+    return review;
   });
-  return review;
 }
 
 /**
  * Create or refresh reviews for every week and month with closed trades.
  * Refreshes open periods, and finished ones whose trades changed.
  */
-export async function syncReviews(repos: JournalRepositories, now: string = nowIso()): Promise<Review[]> {
+export function syncReviews(repos: JournalRepositories, now: string = nowIso()): Promise<Review[]> {
+  // One sync at a time per journal: pages that load together (or React's dev double-mount) queue up.
+  const previous = syncQueue.get(repos) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(() => runSync(repos, now));
+  syncQueue.set(repos, next);
+  return next;
+}
+
+const syncQueue = new WeakMap<JournalRepositories, Promise<unknown>>();
+
+async function runSync(repos: JournalRepositories, now: string): Promise<Review[]> {
   const ctx = await loadSyncContext(repos);
   const periods = periodsForDays(new Set(ctx.data.rows.map((r) => r.day)));
   for (const period of periods) {
