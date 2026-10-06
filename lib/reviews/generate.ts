@@ -342,7 +342,10 @@ export function generateReviewFindings(input: ReviewInput): FindingDraft[] {
     key: "exec.adherence",
     section: "EXECUTION",
     kind: "OBSERVATION",
-    title: `${count("YES").length} followed the forecast, ${deviations.length} deviated, ${count("UNLINKED").length} not linked`,
+    title:
+      count("UNLINKED").length === rows.length
+        ? `None of the ${plural(rows.length, "trade")} were linked to a forecast`
+        : `${count("YES").length} followed the forecast, ${deviations.length} deviated, ${count("UNLINKED").length} not linked`,
     detail: `Partially ${count("PARTIAL").length} · didn't follow ${count("NO").length} · unplanned ${count("UNPLANNED").length}.` +
       (deviations.length ? ` Deviations netted ${money(groupStats(deviations).netPnl)}.` : ""),
     tradeIds: ids(deviations),
