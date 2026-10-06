@@ -313,7 +313,7 @@ function PsychologyPhaseForm({ phase }: { phase: PsychologyPhase }) {
   const field = PHASE_FIELD[phase];
 
   return (
-    <div className="rounded-lg border border-border p-4">
+    <div className="min-w-0 rounded-lg border border-border p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold">
         {PSYCHOLOGY_PHASE_LABELS[phase]}
         {f.isRequired(field) && <span className="text-xs font-normal text-muted">(required to close)</span>}
@@ -359,7 +359,7 @@ function PsychologyPhaseForm({ phase }: { phase: PsychologyPhase }) {
           {ratings.map((rating) => (
             <fieldset key={rating}>
               <legend className="mb-1.5 text-xs font-medium text-muted">{rating} (1–5)</legend>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {["", "1", "2", "3", "4", "5"].map((v) => (
                   <label
                     key={v}
@@ -399,7 +399,7 @@ function PsychologySection() {
       title="Psychology"
       incomplete={f.anyMissing("psychologyBefore", "psychologyDuring", "psychologyAfter")}
     >
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 2xl:grid-cols-3">
         {(["BEFORE", "DURING", "AFTER"] as const).map((phase) => (
           <PsychologyPhaseForm key={phase} phase={phase} />
         ))}
