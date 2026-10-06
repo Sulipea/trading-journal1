@@ -1,11 +1,11 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { QuickEntryForm } from "@/components/trades/quick-entry-form";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function NewTradePage() {
   return (
-    <ComingSoon
-      title="New Trade"
-      phase={2}
-      summary="Quick entry (symbol, direction, entry price, contracts) and the full trade form."
-    />
+    <>
+      <PageHeader title="New Trade" />
+      <QuickEntryForm />
+    </>
   );
 }

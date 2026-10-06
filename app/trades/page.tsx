@@ -1,11 +1,11 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { TradeList } from "@/components/trades/trade-list";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function TradesPage() {
   return (
-    <ComingSoon
-      title="Trades"
-      phase={2}
-      summary="Trade history, the trade workspace with its event timeline, and the recycle bin."
-    />
+    <>
+      <PageHeader title="Trades" description="Every trade, newest first." />
+      <TradeList />
+    </>
   );
 }
