@@ -98,13 +98,21 @@ function describeGroup(dimension: Dimension, label: string): string {
 export function detectPatterns(rows: readonly AnalyticsRow[]): Pattern[] {
   if (rows.length < MIN_PATTERN_TRADES) return [];
   const patterns: Pattern[] = [];
+  // A group and its exact complement (e.g. Long vs Short) are the same finding; report it once.
+  const reported = new Set<string>();
+  const signature = (ids: Iterable<string>) => [...ids].sort().join(",");
+  const allIds = rows.map((r) => r.trade.id);
 
   for (const dimension of DIMENSIONS) {
-    for (const g of breakdown(rows, dimension)) {
+    // Smallest groups first: when two groups mirror each other, the more specific one is reported.
+    const groups = breakdown(rows, dimension).sort((a, b) => a.tradeIds.length - b.tradeIds.length);
+    for (const g of groups) {
       const inGroup = new Set(g.tradeIds);
       const groupRows = rows.filter((r) => inGroup.has(r.trade.id));
       const restRows = rows.filter((r) => !inGroup.has(r.trade.id));
       if (groupRows.length < MIN_PATTERN_GROUP || restRows.length < MIN_PATTERN_GROUP) continue;
+      if (reported.has(signature(allIds.filter((id) => !inGroup.has(id))))) continue;
+      const countBefore = patterns.length;
 
       const group = groupStats(groupRows);
       const rest = groupStats(restRows);
@@ -124,6 +132,7 @@ export function detectPatterns(rows: readonly AnalyticsRow[]): Pattern[] {
           statistic: t,
           statement: `Potential pattern: ${who} averaged ${money(group.expectancy)} per trade vs ${money(rest.expectancy)} for your other trades.`,
         });
+        reported.add(signature(inGroup));
         continue; // one pattern per group is enough
       }
 
@@ -140,6 +149,7 @@ export function detectPatterns(rows: readonly AnalyticsRow[]): Pattern[] {
           statement: `Potential pattern: ${who} won ${pct(group.winRate)} of the time vs ${pct(rest.winRate)} for your other trades.`,
         });
       }
+      if (patterns.length > countBefore) reported.add(signature(inGroup));
     }
   }
 

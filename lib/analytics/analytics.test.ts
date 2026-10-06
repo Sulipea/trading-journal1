@@ -252,6 +252,13 @@ describe("pattern detection", () => {
     expect(p.rest.count).toBe(20);
   });
 
+  it("reports a two-way split once, not as mirrored better/worse patterns", () => {
+    const longs = Array.from({ length: 12 }, (_, i) => row(200 + i, {}, { direction: "LONG" }));
+    const shorts = Array.from({ length: 12 }, (_, i) => row(-200 - i, {}, { direction: "SHORT" }));
+    const direction = detectPatterns([...longs, ...shorts]).filter((p) => p.dimension === "direction");
+    expect(direction).toHaveLength(1);
+  });
+
   it("ignores noise", () => {
     const rows = Array.from({ length: 40 }, (_, i) => row(i % 2 ? 100 : -100, { emotions: [i % 4 < 2 ? "Calm" : "Focused"] }));
     expect(detectPatterns(rows).filter((p) => p.dimension === "emotion")).toEqual([]);

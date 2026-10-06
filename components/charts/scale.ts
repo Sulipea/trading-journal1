@@ -13,7 +13,8 @@ export function niceTicks(min: number, max: number, count = 4): number[] {
   const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
   const start = Math.floor(min / step) * step;
   const ticks: number[] = [];
-  for (let v = start; v <= max + step * 0.5; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
+  // Keep adding ticks until the last one covers `max`, so nothing is drawn outside the axis.
+  for (let v = start; ticks.length === 0 || ticks.at(-1)! < max; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
   return ticks;
 }
 
