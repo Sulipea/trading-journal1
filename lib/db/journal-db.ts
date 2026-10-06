@@ -10,6 +10,8 @@ import type {
   LevelInteraction,
   MarketSnapshot,
   PsychologyEntry,
+  Review,
+  ReviewFinding,
   Rule,
   RuleCheck,
   RuleGroup,
@@ -45,6 +47,8 @@ export class JournalDb extends Dexie {
   marketSnapshots!: EntityTable<MarketSnapshot, "id">;
   levelInteractions!: EntityTable<LevelInteraction, "id">;
   forecastTradeLinks!: EntityTable<ForecastTradeLink, "id">;
+  reviews!: EntityTable<Review, "id">;
+  reviewFindings!: EntityTable<ReviewFinding, "id">;
   changeHistory!: EntityTable<ChangeHistory, "id">;
   trashItems!: EntityTable<TrashItem, "id">;
   accountSettings!: EntityTable<AccountSettings, "id">;

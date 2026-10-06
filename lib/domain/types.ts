@@ -15,6 +15,7 @@ import type {
   forecastScenarioSchema,
   forecastSchema,
   forecastTradeLinkSchema,
+  findingKindSchema,
   gexRegimeSchema,
   levelInteractionSchema,
   levelPrioritySchema,
@@ -27,6 +28,10 @@ import type {
   directionSchema,
   psychologyEntrySchema,
   psychologyPhaseSchema,
+  reviewFindingSchema,
+  reviewKindSchema,
+  reviewSchema,
+  reviewSectionSchema,
   requirableFieldSchema,
   requirementOverrideSchema,
   ruleCheckSchema,
@@ -99,3 +104,8 @@ export type MarketSnapshot = z.infer<typeof marketSnapshotSchema>;
 export type LevelInteraction = z.infer<typeof levelInteractionSchema>;
 export type ForecastAdherence = z.infer<typeof forecastAdherenceSchema>;
 export type ForecastTradeLink = z.infer<typeof forecastTradeLinkSchema>;
+export type ReviewKind = z.infer<typeof reviewKindSchema>;
+export type ReviewSection = z.infer<typeof reviewSectionSchema>;
+export type FindingKind = z.infer<typeof findingKindSchema>;
+export type Review = z.infer<typeof reviewSchema>;
+export type ReviewFinding = z.infer<typeof reviewFindingSchema>;

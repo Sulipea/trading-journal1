@@ -114,6 +114,14 @@ export const MIGRATIONS: readonly Migration[] = [
       forecastTradeLinks: "id, &tradeId, forecastId",
     },
   },
+  {
+    // Phase 6: weekly/monthly reviews and their findings.
+    version: 6,
+    stores: {
+      reviews: "id, &[kind+periodStart], periodStart",
+      reviewFindings: "id, reviewId",
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

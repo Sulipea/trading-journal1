@@ -446,6 +446,53 @@ export const forecastTradeLinkSchema = z.object({
   reason: z.string(),
 });
 
+// ── reviews (spec §31) ────────────────────────────────────────────────────
+
+export const reviewKindSchema = z.enum(["WEEKLY", "MONTHLY"]);
+export const reviewSectionSchema = z.enum([
+  "PERFORMANCE",
+  "RULES",
+  "PSYCHOLOGY",
+  "FORECAST",
+  "EXECUTION",
+  "SETUPS",
+  "CONDITIONS",
+]);
+/** Deterministic findings are data-backed observations, possible patterns, or questions to reflect on. */
+export const findingKindSchema = z.enum(["OBSERVATION", "PATTERN", "QUESTION"]);
+
+/** A generated weekly or monthly review. Findings live in their own table, attached to it. */
+export const reviewSchema = z.object({
+  ...entityBase,
+  kind: reviewKindSchema,
+  /** Inclusive trading dates. Weeks start on Monday. */
+  periodStart: tradingDateSchema,
+  periodEnd: tradingDateSchema,
+  /** OPEN while the period is running (refreshed automatically); COMPLETE once it has ended. */
+  status: z.enum(["OPEN", "COMPLETE"]),
+  generatedAt: timestamp,
+  tradeCount: z.number().int().nonnegative(),
+  netPnl: money,
+  /** Your own reflection on the period. */
+  notes: z.string(),
+});
+
+export const reviewFindingSchema = z.object({
+  ...entityBase,
+  reviewId: id,
+  /** Stable across regenerations, so the important flag survives a refresh. */
+  key: z.string().min(1),
+  section: reviewSectionSchema,
+  kind: findingKindSchema,
+  title: z.string().min(1),
+  detail: z.string(),
+  tradeIds: z.array(id),
+  important: z.boolean(),
+  /** An important finding that the latest data no longer produces. Kept, never silently deleted. */
+  stale: z.boolean(),
+  order: z.number().int(),
+});
+
 export const ACCOUNT_SETTINGS_ID = "00000000-0000-4000-8000-000000000001";
 export const APP_SETTINGS_ID = "00000000-0000-4000-8000-000000000002";
 

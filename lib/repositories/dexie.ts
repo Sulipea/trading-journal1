@@ -21,6 +21,8 @@ import {
   levelInteractionSchema,
   marketSnapshotSchema,
   psychologyEntrySchema,
+  reviewFindingSchema,
+  reviewSchema,
   ruleCheckSchema,
   ruleGroupSchema,
   ruleSchema,
@@ -40,6 +42,7 @@ import type {
   ForecastRepository,
   JournalRepositories,
   PsychologyRepository,
+  ReviewRepository,
   RuleCheckRepository,
   RuleRepository,
   ScreenshotRepository,
@@ -303,6 +306,33 @@ function createForecastRepository(db: JournalDb): ForecastRepository {
   };
 }
 
+function createReviewRepository(db: JournalDb): ReviewRepository {
+  return {
+    get: (id) => db.reviews.get(id),
+    getByPeriod: (kind, periodStart) => db.reviews.where("[kind+periodStart]").equals([kind, periodStart]).first(),
+    list: () => db.reviews.orderBy("periodStart").reverse().toArray(),
+
+    async save(review) {
+      await db.reviews.put(reviewSchema.parse(review));
+    },
+
+    async listFindings(reviewId) {
+      const findings = await db.reviewFindings.where("reviewId").equals(reviewId).toArray();
+      return findings.sort((a, b) => a.order - b.order);
+    },
+
+    listImportantFindings: () => db.reviewFindings.filter((f) => f.important).toArray(),
+
+    async saveFinding(finding) {
+      await db.reviewFindings.put(reviewFindingSchema.parse(finding));
+    },
+
+    async deleteFindings(ids) {
+      await db.reviewFindings.bulkDelete([...ids]);
+    },
+  };
+}
+
 function createChangeHistoryRepository(db: JournalDb): ChangeHistoryRepository {
   const forEntity = (entityType: string, entityId: EntityId) =>
     db.changeHistory.where("[entityType+entityId]").equals([entityType, entityId]);
@@ -392,6 +422,7 @@ export function createDexieRepositories(db: JournalDb): JournalRepositories {
     rules: createRuleRepository(db),
     ruleChecks: createRuleCheckRepository(db),
     forecasts: createForecastRepository(db),
+    reviews: createReviewRepository(db),
     changeHistory: createChangeHistoryRepository(db),
     trash: createTrashRepository(db),
     settings: createSettingsRepository(db),

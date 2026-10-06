@@ -17,6 +17,9 @@ import type {
   LevelInteraction,
   MarketSnapshot,
   PsychologyEntry,
+  Review,
+  ReviewFinding,
+  ReviewKind,
   Rule,
   RuleCheck,
   RuleGroup,
@@ -148,6 +151,18 @@ export interface ForecastRepository {
   deleteLinkForTrade(tradeId: EntityId): Promise<void>;
 }
 
+export interface ReviewRepository {
+  get(id: EntityId): Promise<Review | undefined>;
+  getByPeriod(kind: ReviewKind, periodStart: string): Promise<Review | undefined>;
+  /** All reviews, newest period first. */
+  list(): Promise<Review[]>;
+  save(review: Review): Promise<void>;
+  listFindings(reviewId: EntityId): Promise<ReviewFinding[]>;
+  listImportantFindings(): Promise<ReviewFinding[]>;
+  saveFinding(finding: ReviewFinding): Promise<void>;
+  deleteFindings(ids: readonly EntityId[]): Promise<void>;
+}
+
 export interface ChangeHistoryRepository {
   add(entries: readonly ChangeHistory[]): Promise<void>;
   /** Changes for one entity, newest first. */
@@ -180,6 +195,7 @@ export interface JournalRepositories {
   rules: RuleRepository;
   ruleChecks: RuleCheckRepository;
   forecasts: ForecastRepository;
+  reviews: ReviewRepository;
   changeHistory: ChangeHistoryRepository;
   trash: TrashRepository;
   settings: SettingsRepository;
