@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CONTRACT_SPECS } from "@/lib/domain/instruments";
 import {
   FillSequenceError,
+  actualRisk,
   plannedRewardRisk,
   plannedRisk,
   rMultiple,
@@ -93,6 +94,7 @@ describe("summarizeFills", () => {
     expect(s.grossPnl).toBe(100);
     expect(s.entryQuantity).toBe(3);
     expect(s.exitQuantity).toBe(3);
+    expect(s.maxOpenQuantity).toBe(2);
   });
 
   it("orders fills by timestamp regardless of input order", () => {
@@ -131,5 +133,23 @@ describe("rMultiple", () => {
   it("is null without positive planned risk", () => {
     expect(rMultiple(100, null)).toBeNull();
     expect(rMultiple(100, 0)).toBeNull();
+  });
+});
+
+describe("actualRisk", () => {
+  it("uses the average entry, the stop and the largest position held", () => {
+    const fills = summarizeFills(
+      [entry(5000, 1, 0), entry(5002, 1, 1), exit(5010, 2, 2)],
+      "LONG",
+      ES,
+      0,
+    );
+    // average entry 5001, stop 4996 → 5 points × $50 × 2 contracts
+    expect(actualRisk(ES, fills, 4996)).toBe(500);
+  });
+
+  it("is null without entries or a stop", () => {
+    expect(actualRisk(ES, { averageEntry: null, maxOpenQuantity: 0 }, 4990)).toBeNull();
+    expect(actualRisk(ES, { averageEntry: 5000, maxOpenQuantity: 1 }, null)).toBeNull();
   });
 });

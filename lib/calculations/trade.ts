@@ -56,6 +56,8 @@ export interface FillSummary {
   entryQuantity: number;
   exitQuantity: number;
   openQuantity: number;
+  /** Largest position held at any point. */
+  maxOpenQuantity: number;
   /** Volume-weighted average entry price, or `null` with no entries. */
   averageEntry: number | null;
   /** Volume-weighted average exit price, or `null` with no exits. */
@@ -88,6 +90,7 @@ export function summarizeFills(
   const ordered = [...fills].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   let openQuantity = 0;
+  let maxOpenQuantity = 0;
   let openCostBasis = 0;
   let realizedPoints = 0;
   let entryQuantity = 0;
@@ -98,6 +101,7 @@ export function summarizeFills(
   for (const fill of ordered) {
     if (fill.type === "ENTRY") {
       openQuantity += fill.quantity;
+      maxOpenQuantity = Math.max(maxOpenQuantity, openQuantity);
       openCostBasis += fill.price * fill.quantity;
       entryQuantity += fill.quantity;
       entryNotional += fill.price * fill.quantity;
@@ -122,6 +126,7 @@ export function summarizeFills(
     entryQuantity,
     exitQuantity,
     openQuantity,
+    maxOpenQuantity,
     averageEntry: entryQuantity > 0 ? entryNotional / entryQuantity : null,
     averageExit: exitQuantity > 0 ? exitNotional / exitQuantity : null,
     grossPnl,
@@ -138,4 +143,18 @@ export function summarizeFills(
 export function rMultiple(netPnl: number, initialPlannedRisk: number | null): number | null {
   if (initialPlannedRisk === null || initialPlannedRisk <= 0) return null;
   return netPnl / initialPlannedRisk;
+}
+
+/**
+ * Actual risk taken, in dollars: distance from the average entry to the
+ * final stop (or planned stop if no final stop was recorded), at the largest
+ * position size held. Returns `null` without entries or any stop.
+ */
+export function actualRisk(
+  spec: ContractSpec,
+  fills: Pick<FillSummary, "averageEntry" | "maxOpenQuantity">,
+  stop: number | null,
+): number | null {
+  if (fills.averageEntry === null || stop === null) return null;
+  return roundMoney(Math.abs(fills.averageEntry - stop) * spec.pointValue * fills.maxOpenQuantity);
 }
