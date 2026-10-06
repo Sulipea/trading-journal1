@@ -21,6 +21,7 @@ import type {
   setupRuleSchema,
   setupSchema,
   screenshotAnnotationVersionSchema,
+  sessionOptionSchema,
   sessionSchema,
   tradeEventSchema,
   tradeEventTypeSchema,
@@ -36,6 +37,7 @@ export type { ContractSpec, InstrumentRoot } from "./instruments";
 export type Direction = z.infer<typeof directionSchema>;
 export type TradeStatus = z.infer<typeof tradeStatusSchema>;
 export type Session = z.infer<typeof sessionSchema>;
+export type SessionOption = z.infer<typeof sessionOptionSchema>;
 export type Trade = z.infer<typeof tradeSchema>;
 export type TradeEventType = z.infer<typeof tradeEventTypeSchema>;
 export type TradeEvent = z.infer<typeof tradeEventSchema>;

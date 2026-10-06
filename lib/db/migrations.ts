@@ -12,6 +12,7 @@
 import type Dexie from "dexie";
 import type { Transaction } from "dexie";
 import {
+  DEFAULT_SESSIONS,
   DEFAULT_PSYCHOLOGY_EMOTIONS,
   DEFAULT_PSYCHOLOGY_RATINGS,
   DEFAULT_REQUIRED_FIELDS,
@@ -86,6 +87,19 @@ export const MIGRATIONS: readonly Migration[] = [
           trade.setupId ??= null;
           trade.requirementOverrides ??= [];
           trade.flaggedForReview ??= false;
+        });
+    },
+  },
+  {
+    // Editable trading sessions in app settings. Existing trades keep their session ids.
+    version: 4,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table("appSettings")
+        .toCollection()
+        .modify((settings: Record<string, unknown>) => {
+          settings.sessions ??= DEFAULT_SESSIONS.map((s) => ({ ...s }));
         });
     },
   },

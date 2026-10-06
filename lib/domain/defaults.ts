@@ -1,12 +1,19 @@
-import type { PsychologyPhase, RequirableField, Session } from "./types";
+import type { PsychologyPhase, RequirableField, SessionOption } from "./types";
 
-export const SESSION_LABELS: Readonly<Record<Session, string>> = {
-  ASIA: "Asia",
-  LONDON: "London",
-  NY_AM: "New York AM",
-  NY_LUNCH: "New York lunch",
-  NY_PM: "New York PM",
-};
+/** Starting sessions; editable in Settings. Ids are stable and never reused. */
+export const DEFAULT_SESSIONS: readonly SessionOption[] = [
+  { id: "ASIA", label: "Asia", active: true },
+  { id: "LONDON", label: "London", active: true },
+  { id: "NY_AM", label: "New York AM", active: true },
+  { id: "NY_LUNCH", label: "New York lunch", active: true },
+  { id: "NY_PM", label: "New York PM", active: true },
+];
+
+/** Display name for a session id; falls back to the id for unknown ones. */
+export function sessionLabel(id: string | null, sessions: readonly SessionOption[]): string {
+  if (id === null) return "—";
+  return sessions.find((s) => s.id === id)?.label ?? id;
+}
 
 export const PSYCHOLOGY_PHASE_LABELS: Readonly<Record<PsychologyPhase, string>> = {
   BEFORE: "Before trade",

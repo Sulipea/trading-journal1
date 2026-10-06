@@ -4,6 +4,7 @@ import {
   DEFAULT_PSYCHOLOGY_EMOTIONS,
   DEFAULT_PSYCHOLOGY_RATINGS,
   DEFAULT_REQUIRED_FIELDS,
+  DEFAULT_SESSIONS,
 } from "@/lib/domain/defaults";
 import { compareFills } from "@/lib/domain/fills";
 import { newId, nowIso } from "@/lib/domain/ids";
@@ -297,6 +298,7 @@ function defaultAppSettings(): AppSettings {
     requiredFields: [...DEFAULT_REQUIRED_FIELDS],
     psychologyEmotions: [...DEFAULT_PSYCHOLOGY_EMOTIONS],
     psychologyRatings: [...DEFAULT_PSYCHOLOGY_RATINGS],
+    sessions: DEFAULT_SESSIONS.map((s) => ({ ...s })),
   };
 }
 

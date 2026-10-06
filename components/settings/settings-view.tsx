@@ -6,10 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Button, Field, FormStatus, Input, Textarea } from "@/components/ui/form";
 import { REQUIRABLE_FIELD_LABELS } from "@/lib/domain/defaults";
 import { requirableFieldSchema } from "@/lib/domain/schemas";
-import type { RequirableField } from "@/lib/domain/types";
+import type { RequirableField, SessionOption } from "@/lib/domain/types";
 import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { savePreferences, saveStartingBalance } from "@/lib/services/settings";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
+import { SessionsEditor } from "./sessions-editor";
 
 type Status = { kind: "saved" | "error"; message: string } | null;
 
@@ -71,6 +72,7 @@ export function SettingsView() {
         requiredFields: form.getAll("requiredFields").map(String) as RequirableField[],
         psychologyEmotions: lines(form.get("emotions")),
         psychologyRatings: lines(form.get("ratings")),
+        sessions: JSON.parse(String(form.get("sessions") ?? "[]")) as SessionOption[],
       });
       setPrefsStatus({ kind: "saved", message: "Preferences saved." });
       query.reload();
@@ -124,6 +126,16 @@ export function SettingsView() {
               <option key={tz} value={tz} />
             ))}
           </datalist>
+        </Card>
+
+        <Card>
+          <h2 className="text-base font-semibold">Trading sessions</h2>
+          <p className="mt-1 text-sm text-muted">
+            Offered in each trade&apos;s Market data section. Hiding a session keeps it on trades that already use it.
+          </p>
+          <div className="mt-4">
+            <SessionsEditor initial={app.sessions} />
+          </div>
         </Card>
 
         <Card>

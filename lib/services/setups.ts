@@ -176,7 +176,11 @@ export interface SetupsOverview {
 }
 
 export async function loadSetupsOverview(repos: JournalRepositories): Promise<SetupsOverview> {
-  const [setups, { rows }] = await Promise.all([repos.setups.list(), loadClosedResultRows(repos)]);
+  const [setups, { rows }, settings] = await Promise.all([
+    repos.setups.list(),
+    loadClosedResultRows(repos),
+    repos.settings.getApp(),
+  ]);
   const byId = new Map(setups.map((s) => [s.id, s]));
   const rowsFor = (id: EntityId | null) => rows.filter((r) => r.trade.setupId === id);
   return {
@@ -186,7 +190,7 @@ export async function loadSetupsOverview(repos: JournalRepositories): Promise<Se
       mergedInto: setup.mergedIntoId ? (byId.get(setup.mergedIntoId) ?? null) : null,
     })),
     unassigned: groupStats(rowsFor(null)),
-    suggestions: suggestSetups(rows),
+    suggestions: suggestSetups(rows, settings.sessions),
     duplicates: findDuplicateSetups(setups),
   };
 }

@@ -28,8 +28,15 @@ export const instrumentRootSchema = z.enum(INSTRUMENT_ROOTS);
 /** Trade lifecycle (spec §6): OPEN -> UPDATED -> CLOSED. */
 export const tradeStatusSchema = z.enum(["OPEN", "UPDATED", "CLOSED"]);
 
-/** Trading session the trade was taken in. */
-export const sessionSchema = z.enum(["ASIA", "LONDON", "NY_AM", "NY_LUNCH", "NY_PM"]);
+/** Id of a trading session defined in app settings. */
+export const sessionSchema = z.string().min(1);
+
+/** A trading session the user can pick. Hidden sessions stay valid on old trades. */
+export const sessionOptionSchema = z.object({
+  id: sessionSchema,
+  label: z.string().trim().min(1),
+  active: z.boolean(),
+});
 
 export const requirableFieldSchema = z.enum([
   "plannedStop",
@@ -298,4 +305,6 @@ export const appSettingsSchema = z.object({
   psychologyEmotions: z.array(z.string().min(1)),
   /** Rating scales offered in psychology entries, each scored 1–5. */
   psychologyRatings: z.array(z.string().min(1)),
+  /** Trading sessions offered on trades, in display order. */
+  sessions: z.array(sessionOptionSchema),
 });

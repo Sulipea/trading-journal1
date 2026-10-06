@@ -1,5 +1,5 @@
-import { nowIso } from "@/lib/domain/ids";
-import type { AppSettings, RequirableField } from "@/lib/domain/types";
+import { newId, nowIso } from "@/lib/domain/ids";
+import type { AppSettings, RequirableField, SessionOption } from "@/lib/domain/types";
 import type { JournalRepositories } from "@/lib/repositories/types";
 
 export function isValidTimezone(timezone: string): boolean {
@@ -26,6 +26,34 @@ export interface JournalPreferences {
   requiredFields: RequirableField[];
   psychologyEmotions: string[];
   psychologyRatings: string[];
+  /** Sessions in display order. New ones have an empty id. */
+  sessions: SessionOption[];
+}
+
+/**
+ * Validate edited sessions. Existing sessions can be renamed or hidden but
+ * never dropped, so trades that used them keep a name.
+ */
+export function cleanSessions(edited: readonly SessionOption[], previous: readonly SessionOption[]): SessionOption[] {
+  const result: SessionOption[] = [];
+  for (const s of edited) {
+    const label = s.label.trim();
+    if (!label) {
+      if (s.id) throw new Error("Sessions need a name. Hide a session instead of clearing its name.");
+      continue; // an empty new row is ignored
+    }
+    result.push({ id: s.id || newId(), label, active: s.active });
+  }
+  for (const old of previous) {
+    if (!result.some((s) => s.id === old.id)) result.push({ ...old, active: false });
+  }
+  const seen = new Set<string>();
+  for (const s of result.filter((x) => x.active)) {
+    const key = s.label.toLowerCase();
+    if (seen.has(key)) throw new Error(`There are two sessions called "${s.label}".`);
+    seen.add(key);
+  }
+  return result;
 }
 
 /** Trim, drop blanks and remove duplicates (case-insensitive), keeping order. */
@@ -56,6 +84,7 @@ export async function savePreferences(
     requiredFields: [...new Set(prefs.requiredFields)],
     psychologyEmotions: cleanList(prefs.psychologyEmotions),
     psychologyRatings: cleanList(prefs.psychologyRatings),
+    sessions: cleanSessions(prefs.sessions, current.sessions),
     updatedAt: now,
   };
   await repos.settings.saveApp(next);

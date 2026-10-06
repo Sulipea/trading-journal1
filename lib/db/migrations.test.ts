@@ -70,6 +70,7 @@ describe("schema migrations", () => {
     expect(settings.timezone).toBe("America/Chicago");
     expect(settings.requiredFields).toEqual(DEFAULT_REQUIRED_FIELDS);
     expect(settings.psychologyEmotions.length).toBeGreaterThan(0);
+    expect(settings.sessions.map((s) => s.id)).toContain("NY_AM");
 
     db.close();
   });

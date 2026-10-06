@@ -4,8 +4,8 @@
  * Everything here only *suggests*: nothing is created or merged
  * automatically. Suggestions are potential patterns, not facts.
  */
-import { SESSION_LABELS } from "@/lib/domain/defaults";
-import type { Direction, EntityId, InstrumentRoot, Session, Setup, Trade } from "@/lib/domain/types";
+import { sessionLabel } from "@/lib/domain/defaults";
+import type { Direction, EntityId, InstrumentRoot, Session, SessionOption, Setup, Trade } from "@/lib/domain/types";
 import { groupStats, type GroupStats, type TradeResultRow } from "./stats";
 
 /** Minimum closed, unassigned trades sharing a pattern before suggesting a setup. */
@@ -49,7 +49,10 @@ export interface SetupSuggestion {
  * Suggest potential setups from recurring patterns among closed trades
  * that have no setup: same instrument, direction and session.
  */
-export function suggestSetups(rows: readonly TradeResultRow[]): SetupSuggestion[] {
+export function suggestSetups(
+  rows: readonly TradeResultRow[],
+  sessions: readonly SessionOption[] = [],
+): SetupSuggestion[] {
   const groups = new Map<string, TradeResultRow[]>();
   for (const row of rows) {
     const t = row.trade;
@@ -64,11 +67,12 @@ export function suggestSetups(rows: readonly TradeResultRow[]): SetupSuggestion[
     const { root, direction, session } = members[0]!.trade as Trade & { session: Session };
     const keywords = commonWords(members.map((m) => `${m.trade.reasoning} ${m.trade.marketConditions}`));
     const side = direction === "LONG" ? "long" : "short";
+    const label = sessionLabel(session, sessions);
     suggestions.push({
       key,
-      name: `${root} ${side} · ${SESSION_LABELS[session]}${keywords[0] ? ` · ${keywords[0]}` : ""}`,
+      name: `${root} ${side} · ${label}${keywords[0] ? ` · ${keywords[0]}` : ""}`,
       description:
-        `${members.length} trades without a setup share this pattern: ${root} ${side}s during ${SESSION_LABELS[session]}.` +
+        `${members.length} trades without a setup share this pattern: ${root} ${side}s during ${label}.` +
         (keywords.length > 0 ? ` Common words in your notes: ${keywords.join(", ")}.` : ""),
       root,
       direction,
