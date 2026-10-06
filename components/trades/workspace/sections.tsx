@@ -3,8 +3,7 @@
 import { Lock } from "lucide-react";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { CONTRACT_SPECS } from "@/lib/domain/instruments";
-import { PSYCHOLOGY_PHASE_LABELS, SESSION_LABELS } from "@/lib/domain/defaults";
-import { sessionSchema } from "@/lib/domain/schemas";
+import { PSYCHOLOGY_PHASE_LABELS } from "@/lib/domain/defaults";
 import type { Direction, PsychologyPhase, RequirableField, Session } from "@/lib/domain/types";
 import { formatMoney, formatPrice, fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
 import { getRepositories } from "@/lib/repositories";
@@ -43,7 +42,7 @@ function MarketDataSection() {
   return (
     <Section number={1} title="Market data" incomplete={f.anyMissing("session", "marketConditions")}>
       <SectionForm
-        key={trade.updatedAt}
+        resetKey={trade.updatedAt}
         onSave={(form) =>
           save(
             {
@@ -63,11 +62,17 @@ function MarketDataSection() {
           >
             <Select id="session" name="session" defaultValue={trade.session ?? ""}>
               <option value="">—</option>
-              {sessionSchema.options.map((s) => (
-                <option key={s} value={s}>
-                  {SESSION_LABELS[s]}
-                </option>
-              ))}
+              {ws.settings.sessions
+                .filter((s) => s.active || s.id === trade.session)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                    {!s.active ? " (hidden)" : ""}
+                  </option>
+                ))}
+              {trade.session && !ws.settings.sessions.some((s) => s.id === trade.session) && (
+                <option value={trade.session}>{trade.session}</option>
+              )}
             </Select>
           </Field>
           <Field
@@ -106,7 +111,7 @@ function TextSection({
   const { trade } = ws;
   return (
     <Section number={number} title={title} incomplete={f.anyMissing(field)}>
-      <SectionForm key={trade.updatedAt} onSave={(form) => save({ [field]: formText(form, field) }, trade.id)}>
+      <SectionForm resetKey={trade.updatedAt} onSave={(form) => save({ [field]: formText(form, field) }, trade.id)}>
         <Field
           label={label}
           htmlFor={field}
@@ -171,7 +176,7 @@ function RiskSection() {
       incomplete={f.anyMissing("plannedStop", "plannedTarget", "finalStop", "finalTarget")}
     >
       <SectionForm
-        key={trade.updatedAt}
+        resetKey={trade.updatedAt}
         disabled={locked}
         onSave={(form) =>
           save(
@@ -314,7 +319,7 @@ function PsychologyPhaseForm({ phase }: { phase: PsychologyPhase }) {
         {f.isMissing(field) && <span className="text-xs font-normal text-negative">{missingText}</span>}
       </h3>
       <SectionForm
-        key={entry?.updatedAt ?? "new"}
+        resetKey={entry?.updatedAt ?? "new"}
         onSave={(form) =>
           savePsychology(getRepositories(), ws.trade.id, phase, {
             emotions: form.getAll("emotions").map(String),
@@ -411,7 +416,7 @@ function ExecutionSection() {
   return (
     <Section number={7} title="Execution" incomplete={f.anyMissing("executionRating", "executionNotes")}>
       <SectionForm
-        key={trade.updatedAt}
+        resetKey={trade.updatedAt}
         onSave={(form) =>
           save(
             {

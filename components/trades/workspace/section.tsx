@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { Fragment, useState, type FormEvent, type ReactNode } from "react";
 import { Button, FormStatus } from "@/components/ui/form";
 import { errorMessage } from "@/lib/ui/use-journal";
 import { useWorkspace } from "./context";
@@ -50,11 +50,18 @@ export function SectionForm({
   children,
   submitLabel = "Save",
   disabled,
+  resetKey,
 }: {
   onSave: (form: FormData) => Promise<unknown>;
   children: ReactNode;
   submitLabel?: string;
   disabled?: boolean;
+  /**
+   * When this changes (e.g. the saved record's updatedAt), the fields reset to
+   * their new default values. The form itself stays mounted so the save
+   * message remains visible.
+   */
+  resetKey?: string;
 }) {
   const { reload, readOnly } = useWorkspace();
   const [status, setStatus] = useState<{ kind: "saved" | "error"; message: string } | null>(null);
@@ -76,7 +83,7 @@ export function SectionForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {children}
+      <Fragment key={resetKey}>{children}</Fragment>
       {!readOnly && (
         <div className="flex items-center gap-4">
           <Button type="submit" variant="primary" disabled={busy || disabled}>
