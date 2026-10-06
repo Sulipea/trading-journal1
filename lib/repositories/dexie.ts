@@ -7,7 +7,7 @@ import {
   DEFAULT_SESSIONS,
 } from "@/lib/domain/defaults";
 import { compareFills } from "@/lib/domain/fills";
-import { newId, nowIso } from "@/lib/domain/ids";
+import { newId } from "@/lib/domain/ids";
 import {
   ACCOUNT_SETTINGS_ID,
   APP_SETTINGS_ID,
@@ -338,13 +338,19 @@ function createTrashRepository(db: JournalDb): TrashRepository {
   };
 }
 
+/**
+ * Timestamp for settings that have never been saved. Fixed, so unsaved
+ * defaults look identical on every read (forms keyed on updatedAt don't reset).
+ */
+const UNSAVED = "1970-01-01T00:00:00.000Z";
+
 function defaultAccountSettings(): AccountSettings {
-  const now = nowIso();
+  const now = UNSAVED;
   return { id: ACCOUNT_SETTINGS_ID, createdAt: now, updatedAt: now, startingBalance: 0 };
 }
 
 function defaultAppSettings(): AppSettings {
-  const now = nowIso();
+  const now = UNSAVED;
   return {
     id: APP_SETTINGS_ID,
     createdAt: now,

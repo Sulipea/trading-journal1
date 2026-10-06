@@ -22,3 +22,14 @@ test("sessions can be renamed, hidden and added, and show up on trades", async (
   await page.locator("details", { hasText: "Market conditions" }).getByRole("button", { name: "Save" }).click();
   await expect(page.locator("details", { hasText: "Market conditions" }).getByText("Saved.")).toBeVisible();
 });
+
+test("saving the starting balance keeps unsaved preference edits", async ({ page }) => {
+  await page.goto("/settings");
+  const boxes = page.locator('input[name="requiredFields"]');
+  await expect(boxes.first()).toBeVisible();
+  for (const box of await boxes.all()) await box.uncheck();
+  await page.getByLabel("Starting balance (USD)").fill("10000");
+  await page.getByRole("button", { name: "Save balance" }).click();
+  await expect(page.getByText("Starting balance saved.")).toBeVisible();
+  await expect(page.locator('input[name="requiredFields"]:checked')).toHaveCount(0);
+});

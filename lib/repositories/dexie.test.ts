@@ -118,6 +118,11 @@ describe("SettingsRepository", () => {
     expect((await repos.settings.getApp()).aiStatus).toBe("NOT_CONFIGURED");
   });
 
+  it("returns identical defaults on every read", async () => {
+    expect(await repos.settings.getApp()).toEqual(await repos.settings.getApp());
+    expect(await repos.settings.getAccount()).toEqual(await repos.settings.getAccount());
+  });
+
   it("persists account settings", async () => {
     const account = await repos.settings.getAccount();
     await repos.settings.saveAccount({ ...account, startingBalance: 25_000 });
