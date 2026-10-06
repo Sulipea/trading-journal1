@@ -86,7 +86,8 @@ export function summarizeFills(
   fees: number,
 ): FillSummary {
   const sign = directionSign(direction);
-  // Stable sort: same-timestamp fills keep their recorded order.
+  // Stable sort: same-timestamp fills keep the order given (repositories
+  // return them in recorded order).
   const ordered = [...fills].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   let openQuantity = 0;

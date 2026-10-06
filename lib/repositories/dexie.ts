@@ -5,6 +5,7 @@ import {
   DEFAULT_PSYCHOLOGY_RATINGS,
   DEFAULT_REQUIRED_FIELDS,
 } from "@/lib/domain/defaults";
+import { compareFills } from "@/lib/domain/fills";
 import { newId, nowIso } from "@/lib/domain/ids";
 import {
   ACCOUNT_SETTINGS_ID,
@@ -42,10 +43,6 @@ import type {
   TrashRepository,
 } from "./types";
 
-function byTimestamp(a: TradeEvent, b: TradeEvent): number {
-  return a.timestamp.localeCompare(b.timestamp);
-}
-
 function createTradeRepository(db: JournalDb): TradeRepository {
   return {
     get: (id) => db.trades.get(id),
@@ -74,18 +71,20 @@ function createTradeEventRepository(db: JournalDb): TradeEventRepository {
   return {
     get: (id) => db.tradeEvents.get(id),
 
-    listForTrade: (tradeId) =>
-      db.tradeEvents
+    async listForTrade(tradeId) {
+      const events = await db.tradeEvents
         .where("[tradeId+timestamp]")
         .between([tradeId, Dexie.minKey], [tradeId, Dexie.maxKey])
-        .toArray(),
+        .toArray();
+      return events.sort(compareFills);
+    },
 
     async listForTrades(tradeIds) {
       const grouped = new Map<EntityId, TradeEvent[]>(tradeIds.map((id) => [id, []]));
       if (tradeIds.length === 0) return grouped;
       const events = await db.tradeEvents.where("tradeId").anyOf(tradeIds).toArray();
       for (const event of events) grouped.get(event.tradeId)?.push(event);
-      for (const list of grouped.values()) list.sort(byTimestamp);
+      for (const list of grouped.values()) list.sort(compareFills);
       return grouped;
     },
 

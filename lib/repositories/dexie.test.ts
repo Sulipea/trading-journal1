@@ -75,6 +75,29 @@ describe("TradeEventRepository", () => {
     ]);
   });
 
+  it("orders same-second fills by when they were recorded, never by id", async () => {
+    const tradeId = newId();
+    const entry = event({
+      tradeId,
+      id: "ffffffff-ffff-4fff-bfff-ffffffffffff",
+      type: "ENTRY",
+      createdAt: "2026-10-06T14:00:00.100Z",
+    });
+    const exit = event({
+      tradeId,
+      id: "00000000-0000-4000-8000-00000000000a",
+      type: "EXIT",
+      createdAt: "2026-10-06T14:00:00.200Z",
+    });
+    await repos.tradeEvents.save(exit);
+    await repos.tradeEvents.save(entry);
+    expect((await repos.tradeEvents.listForTrade(tradeId)).map((e) => e.type)).toEqual(["ENTRY", "EXIT"]);
+    expect((await repos.tradeEvents.listForTrades([tradeId])).get(tradeId)!.map((e) => e.type)).toEqual([
+      "ENTRY",
+      "EXIT",
+    ]);
+  });
+
   it("groups events for several trades", async () => {
     const a = newId();
     const b = newId();
