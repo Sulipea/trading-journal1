@@ -1,11 +1,11 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { SetupsView } from "@/components/setups/setups-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function SetupsPage() {
   return (
-    <ComingSoon
-      title="Setups"
-      phase={3}
-      summary="Setup definitions, checklists, required fields and per-setup statistics."
-    />
+    <>
+      <PageHeader title="Setups" description="The trades you look for, with their own checklists, requirements and statistics." />
+      <SetupsView />
+    </>
   );
 }

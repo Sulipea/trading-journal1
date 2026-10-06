@@ -1,11 +1,14 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { RulesView } from "@/components/rules/rules-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function RulesPage() {
   return (
-    <ComingSoon
-      title="Rules"
-      phase={3}
-      summary="Rules with severity and hierarchy, violation warnings and rule analytics."
-    />
+    <>
+      <PageHeader
+        title="Rules"
+        description="Your trading rules, grouped as you like. They form each trade's checklist."
+      />
+      <RulesView />
+    </>
   );
 }

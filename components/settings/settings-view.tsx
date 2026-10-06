@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import { Button, Field, FormStatus, Input, Textarea } from "@/components/ui/form";
@@ -130,7 +131,7 @@ export function SettingsView() {
             <legend className="text-base font-semibold">Required before closing a trade</legend>
             <p className="mt-1 text-sm text-muted">
               Symbol, direction, entry, contracts and a fully exited position are always required.
-              Per-setup requirements arrive with setups.
+              Setups can add their own requirements.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {REQUIRABLE_FIELDS.map((field) => (
@@ -174,9 +175,17 @@ export function SettingsView() {
         </div>
       </form>
 
+      <Card>
+        <h2 className="text-base font-semibold">Setups &amp; rules</h2>
+        <p className="mt-1 text-sm text-muted">
+          Manage setups (with their own required fields and checklists) on the{" "}
+          <Link href="/setups" className="text-accent hover:underline">Setups</Link> page, and rules, groups and
+          severities on the <Link href="/rules" className="text-accent hover:underline">Rules</Link> page.
+        </p>
+      </Card>
+
       <p className="text-sm text-muted">
-        Setups, rules, forecast defaults, reminders, AI controls and backups will appear here as those
-        features are built.
+        Forecast defaults, reminders, AI controls and backups will appear here as those features are built.
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ import type { JournalRepositories } from "@/lib/repositories";
 import { listTradeRows } from "@/lib/services/trades";
 import { cn } from "@/lib/ui/cn";
 import { useJournalQuery } from "@/lib/ui/use-journal";
+import { QualityBadge, ReviewFlag } from "@/components/rules/badges";
 import { DirectionBadge, SignedValue, StatusBadge } from "./badges";
 
 type Filter = "all" | "open" | "closed";
@@ -81,7 +82,7 @@ export function TradeList() {
           </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden p-0">
+        <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <caption className="sr-only">Trades, newest first</caption>
             <thead className="border-b border-border text-left text-xs text-muted">
@@ -89,13 +90,15 @@ export function TradeList() {
                 <th scope="col" className="px-4 py-3 font-medium">Opened</th>
                 <th scope="col" className="px-4 py-3 font-medium">Contract</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
+                <th scope="col" className="px-4 py-3 font-medium">Setup</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Avg entry</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Net P&amp;L</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">R</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Quality</th>
               </tr>
             </thead>
             <tbody>
-              {visible.map(({ trade, metrics }) => {
+              {visible.map(({ trade, metrics, quality, setupName }) => {
                 const net = metrics.fills?.netPnl ?? null;
                 return (
                   <tr key={trade.id} className="border-b border-border last:border-0 hover:bg-surface-muted/60">
@@ -112,8 +115,12 @@ export function TradeList() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={trade.status} />
+                      <span className="inline-flex items-center gap-1.5">
+                        <StatusBadge status={trade.status} />
+                        {trade.flaggedForReview && <ReviewFlag />}
+                      </span>
                     </td>
+                    <td className="px-4 py-3 text-muted">{setupName ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-mono tabular-nums">
                       {formatPrice(metrics.fills?.averageEntry ?? null)}
                     </td>
@@ -122,6 +129,9 @@ export function TradeList() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <SignedValue value={metrics.rMultiple}>{formatR(metrics.rMultiple)}</SignedValue>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <QualityBadge quality={quality} />
                     </td>
                   </tr>
                 );

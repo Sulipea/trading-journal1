@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, LockOpen, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Flag, Lock, LockOpen, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, FormStatus, buttonClass } from "@/components/ui/form";
@@ -20,9 +20,12 @@ import {
   setUnlocked,
 } from "@/lib/services/trades";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
+import { ReviewFlag } from "@/components/rules/badges";
+import { setReviewFlag } from "@/lib/services/trade-rules";
 import { DirectionBadge, LockBadge, SignedValue, StatusBadge } from "../badges";
 import { WorkspaceContext, useWorkspace, type WorkspaceContextValue } from "./context";
 import { FillsTimeline } from "./fills-timeline";
+import { QualityCard } from "./quality-card";
 import { TradeSections } from "./sections";
 
 /** `forVersion` ties an error to the trade version it was about, so it disappears once the trade changes. */
@@ -66,8 +69,9 @@ export function TradeWorkspaceView({ tradeId }: { tradeId: string }) {
         <Readiness />
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <TradeSections />
-          <div className="lg:sticky lg:top-6">
+          <div className="space-y-6 lg:sticky lg:top-6">
             <FillsTimeline />
+            <QualityCard />
           </div>
         </div>
       </div>
@@ -116,6 +120,7 @@ function WorkspaceHeader() {
             <DirectionBadge direction={trade.direction} />
             <StatusBadge status={trade.status} />
             <LockBadge trade={trade} />
+            {trade.flaggedForReview && <ReviewFlag />}
           </h1>
           <p className="mt-1 text-sm text-muted">
             {CONTRACT_SPECS[trade.root].name} · opened {formatDateTime(trade.openedAt, ws.settings.timezone)}
@@ -149,6 +154,18 @@ function WorkspaceHeader() {
                 {trade.unlocked ? "Lock" : "Unlock"}
               </Button>
             )}
+            <Button
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () => setReviewFlag(getRepositories(), trade.id, !trade.flaggedForReview),
+                  trade.flaggedForReview ? "Marked as reviewed." : "Flagged for review.",
+                )
+              }
+            >
+              <Flag aria-hidden className="size-4" />
+              {trade.flaggedForReview ? "Mark reviewed" : "Flag for review"}
+            </Button>
             <Button variant="danger" disabled={busy} onClick={() => setConfirmTrash(true)}>
               <Trash2 aria-hidden className="size-4" />
               Move to trash
@@ -222,12 +239,15 @@ function Readiness() {
     return <Banner tone="ok">Position is flat and everything required is complete. Ready to close.</Banner>;
   }
   const missing = readiness.missing.map((f) => REQUIRABLE_FIELD_LABELS[f]);
+  const rules = [...new Set(readiness.ruleIssues.map((i) => i.ruleName))];
+  const todo = [
+    missing.length > 0 ? `complete: ${missing.join(", ")}` : null,
+    rules.length > 0 ? `finish the checklist: ${rules.join(", ")}` : null,
+  ].filter(Boolean);
   return (
     <Banner tone="warn">
       {readiness.positionFlat ? "Position is flat. " : "Still in the trade. "}
-      {missing.length > 0
-        ? `Before closing, complete: ${missing.join(", ")}.`
-        : "Exit every open contract to close the trade."}
+      {todo.length > 0 ? `Before closing, ${todo.join("; and ")}.` : "Exit every open contract to close the trade."}
     </Banner>
   );
 }

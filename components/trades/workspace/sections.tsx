@@ -12,7 +12,9 @@ import { savePsychology, updateTrade, type TradePatch } from "@/lib/services/tra
 import { cn } from "@/lib/ui/cn";
 import { formNumber, formText, useWorkspace } from "./context";
 import { LaterPhase, Section, SectionForm } from "./section";
+import { RulesChecklistSection } from "./rules-checklist";
 import { ScreenshotsSection } from "./screenshots";
+import { SetupSection } from "./setup-section";
 
 function useFieldState() {
   const { ws, required } = useWorkspace();
@@ -468,17 +470,13 @@ export function TradeSections() {
       <Section number={3} title="Forecast / context">
         <LaterPhase phase={4}>Link this trade to a daily forecast and scenario.</LaterPhase>
       </Section>
-      <Section number={4} title="Setup">
-        <LaterPhase phase={3}>Choose a setup, which also sets its own required fields.</LaterPhase>
-      </Section>
+      <SetupSection number={4} />
       <RiskSection />
       <PsychologySection />
       <ExecutionSection />
       <ScreenshotsSection number={8} />
       <TextSection number={9} title="Notes" field="notes" label="Notes" />
-      <Section number={10} title="Rules / checklist">
-        <LaterPhase phase={3}>Rule checklists, violation warnings and acknowledgements.</LaterPhase>
-      </Section>
+      <RulesChecklistSection number={10} />
     </div>
   );
 }
