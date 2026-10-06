@@ -1,16 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { Bell } from "lucide-react";
+import { useCallback, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import { Button, Field, FormStatus, Input } from "@/components/ui/form";
 import { formatMoney, fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
 import { CONTRACT_SPECS, parseContractSymbol, tickValue } from "@/lib/domain/instruments";
 import type { Direction } from "@/lib/domain/types";
-import { getRepositories } from "@/lib/repositories";
+import { newTradeReminders } from "@/lib/domain/reminders";
+import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { createQuickTrade } from "@/lib/services/trades";
 import { cn } from "@/lib/ui/cn";
-import { errorMessage } from "@/lib/ui/use-journal";
+import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
 
 export function QuickEntryForm() {
   const router = useRouter();
@@ -19,6 +21,11 @@ export function QuickEntryForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [defaultTime] = useState(() => toDateTimeLocal(new Date().toISOString()));
+  const loadReminders = useCallback(
+    async (repos: JournalRepositories) => newTradeReminders((await repos.settings.getApp()).reminders),
+    [],
+  );
+  const reminders = useJournalQuery(loadReminders);
 
   const parsed = symbol ? parseContractSymbol(symbol) : null;
   const spec = parsed ? CONTRACT_SPECS[parsed.root] : null;
@@ -54,6 +61,13 @@ export function QuickEntryForm() {
       <p className="mt-1 text-sm text-muted">
         Log the essentials now. Everything else can be completed in the trade workspace before you close it.
       </p>
+      {reminders.status === "ready" &&
+        reminders.data.map((r) => (
+          <p key={r.id} className="mt-3 flex items-start gap-2 rounded-md bg-accent/8 px-3 py-2 text-sm">
+            <Bell aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
+            {r.message}
+          </p>
+        ))}
 
       <form onSubmit={onSubmit} className="mt-5 space-y-4">
         <Field

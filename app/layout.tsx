@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { BackgroundTasks } from "@/components/app-shell/background-tasks";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import "./globals.css";
 
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trading Journal",
+  title: { default: "Trading Journal", template: "%s · Trading Journal" },
   description: "Personal futures trading journal",
 };
 
@@ -33,7 +34,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <Sidebar />
         <main id="main" className="min-w-0 flex-1 px-8 py-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
+          <div className="mx-auto max-w-6xl">
+            <BackgroundTasks />
+            {children}
+          </div>
         </main>
       </body>
     </html>

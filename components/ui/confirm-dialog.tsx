@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Button } from "./form";
 
 /**
@@ -27,6 +27,7 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -42,10 +43,10 @@ export function ConfirmDialog({
         event.preventDefault();
         onCancel();
       }}
-      aria-labelledby="confirm-title"
+      aria-labelledby={titleId}
       className="m-auto w-full max-w-md rounded-xl border border-border bg-surface p-6 text-foreground shadow-xl backdrop:bg-black/50"
     >
-      <h2 id="confirm-title" className="text-lg font-semibold">
+      <h2 id={titleId} className="text-lg font-semibold">
         {title}
       </h2>
       <div className="mt-2 text-sm text-muted">{children}</div>

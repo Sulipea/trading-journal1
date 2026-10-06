@@ -13,7 +13,7 @@ import { MIN_CALIBRATION_SAMPLE } from "@/lib/analytics/forecast";
 import { formatMoney, formatPercent } from "@/lib/format";
 import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { loadForecastsOverview, type ForecastsOverview } from "@/lib/services/forecast-views";
-import { createForecast } from "@/lib/services/forecasts";
+import { createForecast, defaultForecastContent } from "@/lib/services/forecasts";
 import { cn } from "@/lib/ui/cn";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
 import {
@@ -49,7 +49,8 @@ function Overview({ data }: { data: ForecastsOverview }) {
   async function create(date: string) {
     setError(null);
     try {
-      const forecast = await createForecast(getRepositories(), date);
+      const repos = getRepositories();
+      const forecast = await createForecast(repos, date, await defaultForecastContent(repos, date));
       router.push(`/forecasts/${forecast.id}`);
     } catch (err) {
       setError(errorMessage(err));
