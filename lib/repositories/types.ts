@@ -12,7 +12,13 @@ import type {
   ChangeHistory,
   EntityId,
   PsychologyEntry,
+  Rule,
+  RuleCheck,
+  RuleGroup,
   ScreenshotAnnotationVersion,
+  Setup,
+  SetupMergeHistory,
+  SetupRule,
   Trade,
   TradeEvent,
   TradeScreenshot,
@@ -70,6 +76,43 @@ export interface AssetStore {
   delete(ids: readonly EntityId[]): Promise<void>;
 }
 
+export interface SetupRepository {
+  get(id: EntityId): Promise<Setup | undefined>;
+  /** All setups, including archived and merged ones, by name. */
+  list(): Promise<Setup[]>;
+  save(setup: Setup): Promise<void>;
+  delete(id: EntityId): Promise<void>;
+  /** Checklist links for one setup, in order. */
+  listRules(setupId: EntityId): Promise<SetupRule[]>;
+  listAllRuleLinks(): Promise<SetupRule[]>;
+  /** Replace a setup's checklist with `ruleIds`, in that order. */
+  replaceRules(setupId: EntityId, ruleIds: readonly EntityId[], now: string): Promise<void>;
+  deleteRuleLinksForRule(ruleId: EntityId): Promise<void>;
+  listMergeHistory(): Promise<SetupMergeHistory[]>;
+  addMergeHistory(entry: SetupMergeHistory): Promise<void>;
+}
+
+export interface RuleRepository {
+  get(id: EntityId): Promise<Rule | undefined>;
+  /** All rules, including inactive ones, in display order. */
+  list(): Promise<Rule[]>;
+  save(rule: Rule): Promise<void>;
+  delete(id: EntityId): Promise<void>;
+  listGroups(): Promise<RuleGroup[]>;
+  saveGroup(group: RuleGroup): Promise<void>;
+  deleteGroup(id: EntityId): Promise<void>;
+}
+
+export interface RuleCheckRepository {
+  listForTrade(tradeId: EntityId): Promise<RuleCheck[]>;
+  /** Every check in the journal, for analytics. */
+  listAll(): Promise<RuleCheck[]>;
+  countForRule(ruleId: EntityId): Promise<number>;
+  save(check: RuleCheck): Promise<void>;
+  delete(id: EntityId): Promise<void>;
+  deleteForTrade(tradeId: EntityId): Promise<void>;
+}
+
 export interface ChangeHistoryRepository {
   add(entries: readonly ChangeHistory[]): Promise<void>;
   /** Changes for one entity, newest first. */
@@ -98,6 +141,9 @@ export interface JournalRepositories {
   psychology: PsychologyRepository;
   screenshots: ScreenshotRepository;
   assets: AssetStore;
+  setups: SetupRepository;
+  rules: RuleRepository;
+  ruleChecks: RuleCheckRepository;
   changeHistory: ChangeHistoryRepository;
   trash: TrashRepository;
   settings: SettingsRepository;

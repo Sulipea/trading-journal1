@@ -10,6 +10,16 @@ import type {
   psychologyEntrySchema,
   psychologyPhaseSchema,
   requirableFieldSchema,
+  requirementOverrideSchema,
+  ruleCheckSchema,
+  ruleCheckStatusSchema,
+  ruleGroupSchema,
+  ruleSchema,
+  ruleSeveritySchema,
+  setupCategorySchema,
+  setupMergeHistorySchema,
+  setupRuleSchema,
+  setupSchema,
   screenshotAnnotationVersionSchema,
   sessionSchema,
   tradeEventSchema,
@@ -41,3 +51,13 @@ export type AccountSettings = z.infer<typeof accountSettingsSchema>;
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 export type RequirableField = z.infer<typeof requirableFieldSchema>;
 export type AppSettings = z.infer<typeof appSettingsSchema>;
+export type RequirementOverride = z.infer<typeof requirementOverrideSchema>;
+export type RuleSeverity = z.infer<typeof ruleSeveritySchema>;
+export type RuleGroup = z.infer<typeof ruleGroupSchema>;
+export type Rule = z.infer<typeof ruleSchema>;
+export type SetupCategory = z.infer<typeof setupCategorySchema>;
+export type Setup = z.infer<typeof setupSchema>;
+export type SetupRule = z.infer<typeof setupRuleSchema>;
+export type SetupMergeHistory = z.infer<typeof setupMergeHistorySchema>;
+export type RuleCheckStatus = z.infer<typeof ruleCheckStatusSchema>;
+export type RuleCheck = z.infer<typeof ruleCheckSchema>;

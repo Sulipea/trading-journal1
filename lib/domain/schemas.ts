@@ -31,6 +31,29 @@ export const tradeStatusSchema = z.enum(["OPEN", "UPDATED", "CLOSED"]);
 /** Trading session the trade was taken in. */
 export const sessionSchema = z.enum(["ASIA", "LONDON", "NY_AM", "NY_LUNCH", "NY_PM"]);
 
+export const requirableFieldSchema = z.enum([
+  "plannedStop",
+  "plannedTarget",
+  "finalStop",
+  "finalTarget",
+  "session",
+  "marketConditions",
+  "reasoning",
+  "executionNotes",
+  "executionRating",
+  "notes",
+  "psychologyBefore",
+  "psychologyDuring",
+  "psychologyAfter",
+  "screenshot",
+]);
+
+export const requirementOverrideSchema = z.object({
+  field: requirableFieldSchema,
+  reason: z.string().trim().min(1),
+  at: timestamp,
+});
+
 export const tradeSchema = z.object({
   ...entityBase,
   status: tradeStatusSchema,
@@ -62,6 +85,13 @@ export const tradeSchema = z.object({
   executionRating: rating.nullable(),
 
   notes: z.string(),
+
+  // Setup & rules
+  setupId: id.nullable(),
+  /** Setup requirements skipped on purpose; each counts as a process violation (spec §6). */
+  requirementOverrides: z.array(requirementOverrideSchema),
+  /** Set automatically by a high-severity rule violation (spec §17); cleared by the user. */
+  flaggedForReview: z.boolean(),
 
   openedAt: timestamp,
   closedAt: timestamp.nullable(),
@@ -159,6 +189,93 @@ export const trashItemSchema = z.object({
   deletedAt: timestamp,
 });
 
+// ── setups & rules (spec §16, §17) ─────────────────────────────────────
+
+export const ruleSeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+
+/** A named group of rules. Groups nest via `parentId` to form a hierarchy. */
+export const ruleGroupSchema = z.object({
+  ...entityBase,
+  name: z.string().trim().min(1),
+  parentId: id.nullable(),
+  order: z.number().int(),
+});
+
+export const ruleSchema = z.object({
+  ...entityBase,
+  name: z.string().trim().min(1),
+  description: z.string(),
+  severity: ruleSeveritySchema,
+  groupId: id.nullable(),
+  /** Required rules must be marked followed/violated before a trade can close. */
+  required: z.boolean(),
+  active: z.boolean(),
+  /** ALL: every trade's checklist. SETUPS: only trades using a setup that links it. */
+  appliesTo: z.enum(["ALL", "SETUPS"]),
+  order: z.number().int(),
+});
+
+export const SETUP_CATEGORIES = [
+  "Breakout",
+  "Pullback",
+  "Reversal",
+  "Range",
+  "Trend continuation",
+  "Opening drive",
+  "Other",
+] as const;
+export const setupCategorySchema = z.enum(SETUP_CATEGORIES);
+
+export const setupSchema = z.object({
+  ...entityBase,
+  name: z.string().trim().min(1),
+  description: z.string(),
+  category: setupCategorySchema,
+  tags: z.array(z.string().trim().min(1)),
+  /** Required to close, in addition to the global required fields. Everything else is optional. */
+  requiredFields: z.array(requirableFieldSchema),
+  /** Inactive setups are archived: kept for history, not offered for new trades. */
+  active: z.boolean(),
+  /** Set when this setup was merged into another (spec §16). */
+  mergedIntoId: id.nullable(),
+});
+
+/** Links a rule into a setup's checklist. */
+export const setupRuleSchema = z.object({
+  ...entityBase,
+  setupId: id,
+  ruleId: id,
+  order: z.number().int(),
+});
+
+export const setupMergeHistorySchema = z.object({
+  ...entityBase,
+  sourceSetupId: id,
+  targetSetupId: id,
+  /** Names at the time of the merge, preserved even if renamed later. */
+  sourceName: z.string(),
+  targetName: z.string(),
+  mergedAt: timestamp,
+});
+
+export const ruleCheckStatusSchema = z.enum(["FOLLOWED", "VIOLATED"]);
+
+/**
+ * A trade's answer for one checklist rule. Violations are checks with
+ * status VIOLATED. Rule name and severity are snapshotted so later rule
+ * edits never rewrite history.
+ */
+export const ruleCheckSchema = z.object({
+  ...entityBase,
+  tradeId: id,
+  ruleId: id,
+  ruleName: z.string(),
+  severity: ruleSeveritySchema,
+  status: ruleCheckStatusSchema,
+  acknowledged: z.boolean(),
+  reason: z.string(),
+});
+
 export const ACCOUNT_SETTINGS_ID = "00000000-0000-4000-8000-000000000001";
 export const APP_SETTINGS_ID = "00000000-0000-4000-8000-000000000002";
 
@@ -169,23 +286,6 @@ export const accountSettingsSchema = z.object({
 });
 
 export const aiStatusSchema = z.enum(["NOT_CONFIGURED", "CONFIGURED", "ENABLED", "DISABLED"]);
-
-export const requirableFieldSchema = z.enum([
-  "plannedStop",
-  "plannedTarget",
-  "finalStop",
-  "finalTarget",
-  "session",
-  "marketConditions",
-  "reasoning",
-  "executionNotes",
-  "executionRating",
-  "notes",
-  "psychologyBefore",
-  "psychologyDuring",
-  "psychologyAfter",
-  "screenshot",
-]);
 
 export const appSettingsSchema = z.object({
   ...entityBase,

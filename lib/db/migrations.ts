@@ -66,6 +66,29 @@ export const MIGRATIONS: readonly Migration[] = [
         });
     },
   },
+  {
+    // Phase 3: setups, rules, rule groups, checklists and trade setup/review fields.
+    version: 3,
+    stores: {
+      trades: "id, status, root, openedAt, closedAt, deletedAt, setupId",
+      setups: "id, name, active",
+      setupRules: "id, setupId, ruleId, &[setupId+ruleId]",
+      setupMergeHistory: "id, sourceSetupId, targetSetupId",
+      rules: "id, groupId, active",
+      ruleGroups: "id, parentId",
+      ruleChecks: "id, tradeId, ruleId, &[tradeId+ruleId]",
+    },
+    upgrade: async (tx) => {
+      await tx
+        .table("trades")
+        .toCollection()
+        .modify((trade: Record<string, unknown>) => {
+          trade.setupId ??= null;
+          trade.requirementOverrides ??= [];
+          trade.flaggedForReview ??= false;
+        });
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

@@ -5,7 +5,13 @@ import type {
   Asset,
   ChangeHistory,
   PsychologyEntry,
+  Rule,
+  RuleCheck,
+  RuleGroup,
   ScreenshotAnnotationVersion,
+  Setup,
+  SetupMergeHistory,
+  SetupRule,
   Trade,
   TradeEvent,
   TradeScreenshot,
@@ -23,6 +29,12 @@ export class JournalDb extends Dexie {
   screenshots!: EntityTable<TradeScreenshot, "id">;
   annotationVersions!: EntityTable<ScreenshotAnnotationVersion, "id">;
   assets!: EntityTable<Asset, "id">;
+  setups!: EntityTable<Setup, "id">;
+  setupRules!: EntityTable<SetupRule, "id">;
+  setupMergeHistory!: EntityTable<SetupMergeHistory, "id">;
+  rules!: EntityTable<Rule, "id">;
+  ruleGroups!: EntityTable<RuleGroup, "id">;
+  ruleChecks!: EntityTable<RuleCheck, "id">;
   changeHistory!: EntityTable<ChangeHistory, "id">;
   trashItems!: EntityTable<TrashItem, "id">;
   accountSettings!: EntityTable<AccountSettings, "id">;

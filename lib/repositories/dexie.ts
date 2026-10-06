@@ -5,7 +5,7 @@ import {
   DEFAULT_PSYCHOLOGY_RATINGS,
   DEFAULT_REQUIRED_FIELDS,
 } from "@/lib/domain/defaults";
-import { nowIso } from "@/lib/domain/ids";
+import { newId, nowIso } from "@/lib/domain/ids";
 import {
   ACCOUNT_SETTINGS_ID,
   APP_SETTINGS_ID,
@@ -14,20 +14,29 @@ import {
   assetSchema,
   changeHistorySchema,
   psychologyEntrySchema,
+  ruleCheckSchema,
+  ruleGroupSchema,
+  ruleSchema,
   screenshotAnnotationVersionSchema,
+  setupMergeHistorySchema,
+  setupRuleSchema,
+  setupSchema,
   tradeEventSchema,
   tradeSchema,
   tradeScreenshotSchema,
   trashItemSchema,
 } from "@/lib/domain/schemas";
-import type { AccountSettings, AppSettings, EntityId, TradeEvent } from "@/lib/domain/types";
+import type { AccountSettings, AppSettings, EntityId, SetupRule, TradeEvent } from "@/lib/domain/types";
 import type {
   AssetStore,
   ChangeHistoryRepository,
   JournalRepositories,
   PsychologyRepository,
+  RuleCheckRepository,
+  RuleRepository,
   ScreenshotRepository,
   SettingsRepository,
+  SetupRepository,
   TradeEventRepository,
   TradeRepository,
   TrashRepository,
@@ -149,6 +158,95 @@ function createAssetStore(db: JournalDb): AssetStore {
   };
 }
 
+function createSetupRepository(db: JournalDb): SetupRepository {
+  return {
+    get: (id) => db.setups.get(id),
+    list: () => db.setups.orderBy("name").toArray(),
+
+    async save(setup) {
+      await db.setups.put(setupSchema.parse(setup));
+    },
+
+    async delete(id) {
+      await db.setups.delete(id);
+      await db.setupRules.where("setupId").equals(id).delete();
+    },
+
+    listRules: (setupId) => db.setupRules.where("setupId").equals(setupId).sortBy("order"),
+    listAllRuleLinks: () => db.setupRules.toArray(),
+
+    async replaceRules(setupId, ruleIds, now) {
+      await db.setupRules.where("setupId").equals(setupId).delete();
+      const links: SetupRule[] = ruleIds.map((ruleId, order) =>
+        setupRuleSchema.parse({ id: newId(), createdAt: now, updatedAt: now, setupId, ruleId, order }),
+      );
+      await db.setupRules.bulkAdd(links);
+    },
+
+    async deleteRuleLinksForRule(ruleId) {
+      await db.setupRules.where("ruleId").equals(ruleId).delete();
+    },
+
+    listMergeHistory: () => db.setupMergeHistory.toArray(),
+
+    async addMergeHistory(entry) {
+      await db.setupMergeHistory.add(setupMergeHistorySchema.parse(entry));
+    },
+  };
+}
+
+function createRuleRepository(db: JournalDb): RuleRepository {
+  return {
+    get: (id) => db.rules.get(id),
+
+    async list() {
+      const rules = await db.rules.toArray();
+      return rules.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+    },
+
+    async save(rule) {
+      await db.rules.put(ruleSchema.parse(rule));
+    },
+
+    async delete(id) {
+      await db.rules.delete(id);
+    },
+
+    async listGroups() {
+      const groups = await db.ruleGroups.toArray();
+      return groups.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+    },
+
+    async saveGroup(group) {
+      await db.ruleGroups.put(ruleGroupSchema.parse(group));
+    },
+
+    async deleteGroup(id) {
+      await db.ruleGroups.delete(id);
+    },
+  };
+}
+
+function createRuleCheckRepository(db: JournalDb): RuleCheckRepository {
+  return {
+    listForTrade: (tradeId) => db.ruleChecks.where("tradeId").equals(tradeId).toArray(),
+    listAll: () => db.ruleChecks.toArray(),
+    countForRule: (ruleId) => db.ruleChecks.where("ruleId").equals(ruleId).count(),
+
+    async save(check) {
+      await db.ruleChecks.put(ruleCheckSchema.parse(check));
+    },
+
+    async delete(id) {
+      await db.ruleChecks.delete(id);
+    },
+
+    async deleteForTrade(tradeId) {
+      await db.ruleChecks.where("tradeId").equals(tradeId).delete();
+    },
+  };
+}
+
 function createChangeHistoryRepository(db: JournalDb): ChangeHistoryRepository {
   const forEntity = (entityType: string, entityId: EntityId) =>
     db.changeHistory.where("[entityType+entityId]").equals([entityType, entityId]);
@@ -227,6 +325,9 @@ export function createDexieRepositories(db: JournalDb): JournalRepositories {
     psychology: createPsychologyRepository(db),
     screenshots: createScreenshotRepository(db),
     assets: createAssetStore(db),
+    setups: createSetupRepository(db),
+    rules: createRuleRepository(db),
+    ruleChecks: createRuleCheckRepository(db),
     changeHistory: createChangeHistoryRepository(db),
     trash: createTrashRepository(db),
     settings: createSettingsRepository(db),
