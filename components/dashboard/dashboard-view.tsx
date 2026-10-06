@@ -9,6 +9,9 @@ import { groupStats, type GroupStats } from "@/lib/analytics/stats";
 import { equityCurve } from "@/lib/calculations/performance";
 import { formatMoney, formatPercent, formatRatio } from "@/lib/format";
 import { loadAnalyticsDataset, type AnalyticsDataset } from "@/lib/services/analytics";
+import { loadRecentFindings, type ImportantFinding } from "@/lib/services/reviews";
+import { periodLabel } from "@/lib/reviews/periods";
+import { Star } from "lucide-react";
 import { getRepositories } from "@/lib/repositories";
 import { buildDashboardSummary, type DashboardSummary } from "@/lib/services/dashboard";
 import { cn } from "@/lib/ui/cn";
@@ -17,7 +20,13 @@ import { Card, CardTitle } from "@/components/ui/card";
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; summary: DashboardSummary; startingBalance: number; snapshot: Snapshot };
+  | {
+      status: "ready";
+      summary: DashboardSummary;
+      startingBalance: number;
+      snapshot: Snapshot;
+      findings: ImportantFinding[];
+    };
 
 interface Snapshot {
   periods: { label: string; stats: GroupStats }[];
@@ -45,9 +54,10 @@ async function loadDashboard(): Promise<Extract<LoadState, { status: "ready" }>>
     repos.settings.getApp(),
     repos.trades.list(),
   ]);
-  const [eventsByTrade, dataset] = await Promise.all([
+  const [eventsByTrade, dataset, findings] = await Promise.all([
     repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
     loadAnalyticsDataset(repos),
+    loadRecentFindings(repos),
   ]);
   const summary = buildDashboardSummary({
     startingBalance: account.startingBalance,
@@ -56,7 +66,13 @@ async function loadDashboard(): Promise<Extract<LoadState, { status: "ready" }>>
     now: new Date(),
     timezone: app.timezone,
   });
-  return { status: "ready", summary, startingBalance: account.startingBalance, snapshot: buildSnapshot(dataset) };
+  return {
+    status: "ready",
+    summary,
+    startingBalance: account.startingBalance,
+    snapshot: buildSnapshot(dataset),
+    findings,
+  };
 }
 
 export function DashboardView() {
@@ -139,10 +155,31 @@ export function DashboardView() {
         </Card>
 
         <Card>
-          <CardTitle>Recent review findings</CardTitle>
-          <p className="mt-4 text-sm text-muted">
-            Findings from weekly and monthly reviews will appear here once reviews are available.
-          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <CardTitle>Recent review findings</CardTitle>
+            <Link href="/reviews" className="text-xs text-accent hover:underline">
+              All reviews
+            </Link>
+          </div>
+          {!ready ? (
+            <p className="mt-4 text-sm text-muted">Loading…</p>
+          ) : ready.findings.length === 0 ? (
+            <p className="mt-4 text-sm text-muted">Close some trades and your weekly review findings will appear here.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {ready.findings.map(({ finding, review }) => (
+                <li key={finding.id} className="text-sm">
+                  <p className="flex items-center gap-1.5 text-xs text-muted">
+                    {finding.important && <Star aria-label="Important" className="size-3 fill-accent text-accent" />}
+                    <Link href={`/reviews/${review.id}`} className="hover:underline">
+                      {periodLabel({ kind: review.kind, start: review.periodStart })}
+                    </Link>
+                  </p>
+                  <p className="font-medium">{finding.title}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

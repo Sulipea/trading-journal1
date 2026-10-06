@@ -1,11 +1,14 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { ReviewsView } from "@/components/reviews/reviews-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ReviewsPage() {
   return (
-    <ComingSoon
-      title="Reviews"
-      phase={6}
-      summary="Automatically generated weekly and monthly reviews with expandable findings."
-    />
+    <>
+      <PageHeader
+        title="Reviews"
+        description="Weekly and monthly reviews, generated automatically from your closed trades."
+      />
+      <ReviewsView />
+    </>
   );
 }

@@ -26,6 +26,7 @@ import { DirectionBadge, LockBadge, SignedValue, StatusBadge } from "../badges";
 import { WorkspaceContext, useWorkspace, type WorkspaceContextValue } from "./context";
 import { FillsTimeline } from "./fills-timeline";
 import { QualityCard } from "./quality-card";
+import { TradeReviewCard } from "./trade-review-card";
 import { TradeSections } from "./sections";
 
 /** `forVersion` ties an error to the trade version it was about, so it disappears once the trade changes. */
@@ -72,6 +73,7 @@ export function TradeWorkspaceView({ tradeId }: { tradeId: string }) {
           <div className="space-y-6 lg:sticky lg:top-6">
             <FillsTimeline />
             <QualityCard />
+            <TradeReviewCard />
           </div>
         </div>
       </div>
