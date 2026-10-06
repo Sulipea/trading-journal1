@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3100;
+// Same port as `npm run dev`, so an already-running dev server is reused (Next allows one per project).
+const PORT = 3000;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -18,7 +19,7 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --port ${PORT}`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });

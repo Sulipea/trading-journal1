@@ -12,6 +12,12 @@
   --positive: #0f7b4f;
   --negative: #c02a3a;
   --ring: #3b5bdb;
+  /* Chart marks: blue gain / red-orange loss, validated for colour-vision deficiency. */
+  --chart-gain: #2f6fd6;
+  --chart-loss: #d2492c;
+  --chart-neutral: #eceef1;
+  --chart-line: #3b5bdb;
+  --chart-grid: #e6e8ec;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,6 +33,11 @@
     --positive: #3ecf8e;
     --negative: #ff6b7a;
     --ring: #6d8bff;
+    --chart-gain: #4a86ee;
+    --chart-loss: #e8613f;
+    --chart-neutral: #262b33;
+    --chart-line: #6d8bff;
+    --chart-grid: #232831;
   }
 }
 
@@ -42,6 +53,11 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-ring: var(--ring);
+  --color-chart-gain: var(--chart-gain);
+  --color-chart-loss: var(--chart-loss);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-line: var(--chart-line);
+  --color-chart-grid: var(--chart-grid);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

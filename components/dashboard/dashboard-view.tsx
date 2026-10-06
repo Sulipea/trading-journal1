@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Sparkline } from "@/components/charts/sparkline";
+import { SignedValue } from "@/components/trades/badges";
+import { applyFilter, DEFAULT_FILTER, type AnalyticsFilter } from "@/lib/analytics/filters";
+import { groupStats, type GroupStats } from "@/lib/analytics/stats";
+import { equityCurve } from "@/lib/calculations/performance";
 import { formatMoney, formatPercent, formatRatio } from "@/lib/format";
+import { loadAnalyticsDataset, type AnalyticsDataset } from "@/lib/services/analytics";
 import { getRepositories } from "@/lib/repositories";
 import { buildDashboardSummary, type DashboardSummary } from "@/lib/services/dashboard";
 import { cn } from "@/lib/ui/cn";
@@ -10,7 +17,26 @@ import { Card, CardTitle } from "@/components/ui/card";
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; summary: DashboardSummary; startingBalance: number };
+  | { status: "ready"; summary: DashboardSummary; startingBalance: number; snapshot: Snapshot };
+
+interface Snapshot {
+  periods: { label: string; stats: GroupStats }[];
+  equity: number[];
+}
+
+function buildSnapshot(data: AnalyticsDataset): Snapshot {
+  const period = (label: string, range: AnalyticsFilter["range"]) => ({
+    label,
+    stats: groupStats(applyFilter(data.rows, { ...DEFAULT_FILTER, range }, data.today)),
+  });
+  return {
+    periods: [period("This week", "WEEK"), period("This month", "MONTH"), period("All time", "ALL")],
+    equity: equityCurve(
+      data.startingBalance,
+      data.rows.map((r) => ({ netPnl: r.netPnl, closedAt: r.trade.closedAt! })),
+    ).map((p) => p.equity),
+  };
+}
 
 async function loadDashboard(): Promise<Extract<LoadState, { status: "ready" }>> {
   const repos = getRepositories();
@@ -19,7 +45,10 @@ async function loadDashboard(): Promise<Extract<LoadState, { status: "ready" }>>
     repos.settings.getApp(),
     repos.trades.list(),
   ]);
-  const eventsByTrade = await repos.tradeEvents.listForTrades(trades.map((t) => t.id));
+  const [eventsByTrade, dataset] = await Promise.all([
+    repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
+    loadAnalyticsDataset(repos),
+  ]);
   const summary = buildDashboardSummary({
     startingBalance: account.startingBalance,
     trades,
@@ -27,7 +56,7 @@ async function loadDashboard(): Promise<Extract<LoadState, { status: "ready" }>>
     now: new Date(),
     timezone: app.timezone,
   });
-  return { status: "ready", summary, startingBalance: account.startingBalance };
+  return { status: "ready", summary, startingBalance: account.startingBalance, snapshot: buildSnapshot(dataset) };
 }
 
 export function DashboardView() {
@@ -81,6 +110,8 @@ export function DashboardView() {
           detail={s && `Max ${formatMoney(s.drawdown.maxDrawdown)}`}
         />
       </div>
+
+      {ready && ready.snapshot.periods[2]!.stats.count > 0 && <SnapshotCard snapshot={ready.snapshot} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -158,4 +189,36 @@ function Metric({ label, value }: { label: string; value: string | undefined }) 
 
 function Skeleton() {
   return <span aria-hidden className="inline-block h-[1em] w-20 animate-pulse rounded bg-surface-muted" />;
+}
+
+function SnapshotCard({ snapshot }: { snapshot: Snapshot }) {
+  return (
+    <Card className="grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem]">
+      <div>
+        <div className="flex items-baseline justify-between gap-3">
+          <CardTitle>Performance snapshot</CardTitle>
+          <Link href="/analytics" className="text-xs text-accent hover:underline">
+            Open analytics
+          </Link>
+        </div>
+        <dl className="mt-3 grid grid-cols-3 gap-4">
+          {snapshot.periods.map(({ label, stats }) => (
+            <div key={label}>
+              <dt className="text-xs text-muted">{label}</dt>
+              <dd className="mt-0.5 font-mono text-base font-semibold">
+                <SignedValue value={stats.netPnl}>{formatMoney(stats.netPnl, { signed: true })}</SignedValue>
+              </dd>
+              <dd className="text-xs text-muted">
+                {stats.count} trade{stats.count === 1 ? "" : "s"} · win {formatPercent(stats.winRate, 0)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div>
+        <p className="text-xs text-muted">Equity, all closed trades</p>
+        <Sparkline values={snapshot.equity} height={56} />
+      </div>
+    </Card>
+  );
 }

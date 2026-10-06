@@ -1,11 +1,11 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { CalendarView } from "@/components/calendar/calendar-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function CalendarPage() {
   return (
-    <ComingSoon
-      title="Calendar"
-      phase={5}
-      summary="Daily P&L, trade counts and performance intensity, with drill-down into each day."
-    />
+    <>
+      <PageHeader title="Calendar" description="Daily P&L and trade counts. Click a day to see its trades." />
+      <CalendarView />
+    </>
   );
 }

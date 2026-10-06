@@ -1,11 +1,14 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { AnalyticsView } from "@/components/analytics/analytics-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function AnalyticsPage() {
   return (
-    <ComingSoon
-      title="Analytics"
-      phase={5}
-      summary="Filterable analysis by setup, instrument, session, psychology, rules and more."
-    />
+    <>
+      <PageHeader
+        title="Analytics"
+        description="Closed trades only. Every number shows its sample size; small samples are flagged."
+      />
+      <AnalyticsView />
+    </>
   );
 }
