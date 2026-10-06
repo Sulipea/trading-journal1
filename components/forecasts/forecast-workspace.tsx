@@ -17,7 +17,15 @@ import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
 import { ForecastContentView } from "./forecast-content-view";
 import { DayTradesPanel, LevelsPanel, ReviewPanel, SnapshotsPanel } from "./forecast-day-panels";
 import { ForecastEditor } from "./forecast-editor";
-import { BIAS_LABELS, biasTone, formatTradingDate } from "./labels";
+import {
+  BIAS_LABELS,
+  CONFIDENCE_LABELS,
+  GEX_LABELS,
+  LEVEL_TYPE_LABELS,
+  REACTION_LABELS,
+  biasTone,
+  formatTradingDate,
+} from "./labels";
 
 type Notice = { kind: "saved" | "error"; message: string } | null;
 
@@ -252,9 +260,19 @@ function ReviseForm({
   );
 }
 
+/** Readable names for enum values that appear in revision changes. */
+const VALUE_LABELS: Record<string, string> = {
+  ...BIAS_LABELS,
+  ...CONFIDENCE_LABELS,
+  ...GEX_LABELS,
+  ...LEVEL_TYPE_LABELS,
+  ...REACTION_LABELS,
+};
+
 function describe(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (typeof value === "string") return VALUE_LABELS[value] ?? value;
+  if (Array.isArray(value)) return value.length ? value.map((v) => describe(v)).join(", ") : "—";
   if (typeof value === "object") return "…";
   return String(value);
 }

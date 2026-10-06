@@ -332,7 +332,7 @@ function RateList({ title, groups }: { title: string; groups: RateGroup[] }) {
     <div>
       <h3 className="text-xs font-medium text-muted">{title}</h3>
       {groups.length === 0 ? (
-        <p className="text-sm text-muted">No reviewed forecasts yet.</p>
+        <p className="text-sm text-muted">None on reviewed forecasts yet.</p>
       ) : (
         <ul className="mt-1 space-y-1 text-sm">
           {groups.map((g) => (
