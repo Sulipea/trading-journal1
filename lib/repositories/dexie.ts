@@ -112,6 +112,7 @@ function createTradeEventRepository(db: JournalDb): TradeEventRepository {
 function createPsychologyRepository(db: JournalDb): PsychologyRepository {
   return {
     listForTrade: (tradeId) => db.psychologyEntries.where("tradeId").equals(tradeId).toArray(),
+    listAll: () => db.psychologyEntries.toArray(),
 
     async save(entry) {
       await db.psychologyEntries.put(psychologyEntrySchema.parse(entry));

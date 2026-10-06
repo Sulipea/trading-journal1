@@ -128,3 +128,19 @@ export function drawdown(
     maxDrawdownPct,
   };
 }
+
+export interface DrawdownPoint extends EquityPoint {
+  /** Running peak equity so far. */
+  peak: number;
+  /** Decline from the running peak, in dollars (≥ 0). */
+  drawdown: number;
+}
+
+/** Equity curve with the drawdown from the running peak at each point. */
+export function drawdownSeries(startingBalance: number, results: readonly ClosedTradeResult[]): DrawdownPoint[] {
+  let peak = -Infinity;
+  return equityCurve(startingBalance, results).map((point) => {
+    peak = Math.max(peak, point.equity);
+    return { ...point, peak, drawdown: roundMoney(peak - point.equity) };
+  });
+}

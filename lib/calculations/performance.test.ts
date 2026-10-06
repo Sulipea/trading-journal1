@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawdown, equityCurve, summarizePerformance, type ClosedTradeResult } from "./performance";
+import { drawdown, drawdownSeries, equityCurve, summarizePerformance, type ClosedTradeResult } from "./performance";
 
 const result = (netPnl: number, day: number): ClosedTradeResult => ({
   netPnl,
@@ -79,5 +79,17 @@ describe("drawdown", () => {
     const d = drawdown(10_000, []);
     expect(d).toMatchObject({ currentEquity: 10_000, currentDrawdown: 0, maxDrawdown: 0 });
     expect(d.maxDrawdownPct).toBeNull();
+  });
+});
+
+describe("drawdownSeries", () => {
+  it("tracks the running peak and drawdown at every point", () => {
+    const series = drawdownSeries(10_000, [result(500, 1), result(-800, 2), result(200, 3)]);
+    expect(series.map((p) => [p.equity, p.peak, p.drawdown])).toEqual([
+      [10_000, 10_000, 0],
+      [10_500, 10_500, 0],
+      [9_700, 10_500, 800],
+      [9_900, 10_500, 600],
+    ]);
   });
 });

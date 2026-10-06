@@ -58,6 +58,8 @@ export interface TradeEventRepository {
 
 export interface PsychologyRepository {
   listForTrade(tradeId: EntityId): Promise<PsychologyEntry[]>;
+  /** Every entry in the journal, for analytics. */
+  listAll(): Promise<PsychologyEntry[]>;
   save(entry: PsychologyEntry): Promise<void>;
   deleteForTrade(tradeId: EntityId): Promise<void>;
 }
