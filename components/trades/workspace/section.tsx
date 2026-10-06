@@ -21,8 +21,11 @@ export function Section({
   incomplete?: boolean;
   children: ReactNode;
 }) {
+  // Only the first render decides; afterwards the section stays as the user left it,
+  // even when saving changes what `defaultOpen` would be.
+  const [initiallyOpen] = useState(defaultOpen);
   return (
-    <details open={defaultOpen} className="group rounded-xl border border-border bg-surface shadow-xs">
+    <details open={initiallyOpen} className="group rounded-xl border border-border bg-surface shadow-xs">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 select-none focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden className="size-4 text-muted transition group-open:rotate-90" />
         <span className="font-mono text-xs text-muted">{String(number).padStart(2, "0")}</span>
