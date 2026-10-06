@@ -99,6 +99,7 @@ export async function clearForecastLink(repos: JournalRepositories, tradeId: Ent
     if (!existing) return;
     await repos.forecasts.deleteLinkForTrade(tradeId);
     await assertStillComplete(repos, trade);
+    await repos.trades.save({ ...trade, updatedAt: now });
     await repos.changeHistory.add([change(trade, "forecastLink", summary(existing), null, now)]);
   });
 }
