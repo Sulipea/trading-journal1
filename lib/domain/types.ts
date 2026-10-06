@@ -11,6 +11,7 @@ import type {
   confidenceSchema,
   forecastAdherenceSchema,
   forecastContentSchema,
+  forecastDefaultsSchema,
   forecastFieldChangeSchema,
   forecastKeyLevelSchema,
   forecastReviewSchema,
@@ -27,9 +28,12 @@ import type {
   marketSnapshotSchema,
   scenarioOutcomeSchema,
   assetSchema,
+  backupMetadataSchema,
+  backupSettingsSchema,
   changeHistorySchema,
   directionSchema,
   psychologyEntrySchema,
+  reminderSchema,
   psychologyPhaseSchema,
   reviewFindingSchema,
   reviewKindSchema,
@@ -115,3 +119,7 @@ export type ReviewFinding = z.infer<typeof reviewFindingSchema>;
 export type AIReview = z.infer<typeof aiReviewSchema>;
 export type AIConversation = z.infer<typeof aiConversationSchema>;
 export type AIMessage = z.infer<typeof aiMessageSchema>;
+export type Reminder = z.infer<typeof reminderSchema>;
+export type ForecastDefaults = z.infer<typeof forecastDefaultsSchema>;
+export type BackupSettings = z.infer<typeof backupSettingsSchema>;
+export type BackupMetadata = z.infer<typeof backupMetadataSchema>;

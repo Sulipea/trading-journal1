@@ -72,6 +72,9 @@ describe("schema migrations", () => {
     expect(settings.psychologyEmotions.length).toBeGreaterThan(0);
     expect(settings.sessions.map((s) => s.id)).toContain("NY_AM");
     expect(settings.aiAutoReview).toBe(true);
+    expect(settings.reminders.map((r) => r.kind)).toEqual(["START_OF_DAY", "END_OF_DAY", "NEW_TRADE"]);
+    expect(settings.backup).toMatchObject({ autoEnabled: true, keep: 7 });
+    expect(settings.forecastDefaults.copyPreviousKeyLevels).toBe(true);
 
     db.close();
   });

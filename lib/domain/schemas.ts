@@ -534,6 +534,47 @@ export const aiMessageSchema = z.object({
   error: z.string(),
 });
 
+// ── reminders, forecast defaults, backups (spec §30, §35, §36) ────────────
+
+export const reminderSchema = z.object({
+  id,
+  kind: z.enum(["START_OF_DAY", "END_OF_DAY", "NEW_TRADE", "CUSTOM"]),
+  message: z.string().trim().min(1),
+  /** "HH:MM" in the journal timezone; null for NEW_TRADE (shown when opening a trade). */
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(),
+  /** 0 = Monday … 6 = Sunday. */
+  weekdays: z.array(z.number().int().min(0).max(6)),
+  enabled: z.boolean(),
+});
+
+export const forecastDefaultsSchema = z.object({
+  confidence: confidenceSchema,
+  conditionTags: z.array(z.string().trim().min(1)),
+  /** Start each new forecast with the previous forecast's key levels. */
+  copyPreviousKeyLevels: z.boolean(),
+});
+
+export const backupSettingsSchema = z.object({
+  /** Keep automatic local snapshots. */
+  autoEnabled: z.boolean(),
+  intervalHours: z.number().int().min(1).max(24 * 7),
+  /** Automatic snapshots to keep (oldest are removed). */
+  keep: z.number().int().min(1).max(60),
+  includeScreenshots: z.boolean(),
+});
+
+/** Metadata of a stored backup snapshot (spec §34 BackupMetadata). */
+export const backupMetadataSchema = z.object({
+  id,
+  createdAt: timestamp,
+  kind: z.enum(["AUTO", "MANUAL", "PRE_RESTORE"]),
+  schemaVersion: z.number().int().positive(),
+  tradeCount: z.number().int().nonnegative(),
+  includesAssets: z.boolean(),
+  sizeBytes: z.number().int().nonnegative(),
+  checksum: z.string().min(1),
+});
+
 export const ACCOUNT_SETTINGS_ID = "00000000-0000-4000-8000-000000000001";
 export const APP_SETTINGS_ID = "00000000-0000-4000-8000-000000000002";
 
@@ -560,4 +601,7 @@ export const appSettingsSchema = z.object({
   sessions: z.array(sessionOptionSchema),
   /** When AI is enabled, review each trade automatically when it closes (spec §32). */
   aiAutoReview: z.boolean(),
+  reminders: z.array(reminderSchema),
+  forecastDefaults: forecastDefaultsSchema,
+  backup: backupSettingsSchema,
 });

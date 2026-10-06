@@ -1,4 +1,4 @@
-import type { PsychologyPhase, RequirableField, SessionOption } from "./types";
+import type { BackupSettings, ForecastDefaults, PsychologyPhase, Reminder, RequirableField, SessionOption } from "./types";
 
 /** Starting sessions; editable in Settings. Ids are stable and never reused. */
 export const DEFAULT_SESSIONS: readonly SessionOption[] = [
@@ -67,3 +67,46 @@ export const DEFAULT_PSYCHOLOGY_EMOTIONS: readonly string[] = [
 ];
 
 export const DEFAULT_PSYCHOLOGY_RATINGS: readonly string[] = ["Confidence", "Focus", "Discipline"];
+
+const WEEKDAYS_MON_FRI = [0, 1, 2, 3, 4];
+
+/** Starting reminders (spec §30); editable in Settings. Fixed ids so migrations are idempotent. */
+export const DEFAULT_REMINDERS: readonly Reminder[] = [
+  {
+    id: "00000000-0000-4000-8000-0000000000a1",
+    kind: "START_OF_DAY",
+    message: "Write today's forecast before the open.",
+    time: "08:30",
+    weekdays: WEEKDAYS_MON_FRI,
+    enabled: true,
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000000a2",
+    kind: "END_OF_DAY",
+    message: "Close out the day: finish open trades and review your forecast.",
+    time: "16:15",
+    weekdays: WEEKDAYS_MON_FRI,
+    enabled: true,
+  },
+  {
+    id: "00000000-0000-4000-8000-0000000000a3",
+    kind: "NEW_TRADE",
+    message: "Before you enter: does this match your forecast and your setup's checklist?",
+    time: null,
+    weekdays: [0, 1, 2, 3, 4, 5, 6],
+    enabled: true,
+  },
+];
+
+export const DEFAULT_FORECAST_DEFAULTS: ForecastDefaults = {
+  confidence: "MEDIUM",
+  conditionTags: [],
+  copyPreviousKeyLevels: true,
+};
+
+export const DEFAULT_BACKUP_SETTINGS: BackupSettings = {
+  autoEnabled: true,
+  intervalHours: 24,
+  keep: 7,
+  includeScreenshots: false,
+};

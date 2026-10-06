@@ -12,6 +12,7 @@ import type {
   AIMessage,
   AIReview,
   Asset,
+  BackupMetadata,
   ChangeHistory,
   EntityId,
   Forecast,
@@ -184,6 +185,37 @@ export interface AIRepository {
   saveMessage(message: AIMessage): Promise<void>;
 }
 
+/** A backup that has been loaded, migrated and validated, ready to replace the journal. */
+export interface StagedRestore {
+  tables: Record<string, unknown[]>;
+  counts: Record<string, number>;
+}
+
+/** Whole-journal export and restore (storage level). */
+export interface BackupStore {
+  readonly schemaVersion: number;
+  /** Every journal table; image assets base64-encoded, or left out. */
+  dump(includeAssets: boolean): Promise<Record<string, unknown[]>>;
+  /**
+   * Load a backup into a temporary store at its own schema version, migrate it
+   * to the current one and validate every row. Throws BackupError on problems.
+   */
+  stage(schemaVersion: number, tables: Record<string, unknown[]>): Promise<StagedRestore>;
+  /** Replace the entire journal with staged data, atomically. */
+  replaceAll(staged: StagedRestore): Promise<void>;
+}
+
+/** Local backup snapshots, kept outside the journal so a restore can't erase them. */
+export interface SnapshotStore {
+  /** Snapshot metadata, newest first. */
+  list(): Promise<BackupMetadata[]>;
+  getPayload(id: EntityId): Promise<string | undefined>;
+  save(meta: BackupMetadata, payload: string): Promise<void>;
+  delete(ids: readonly EntityId[]): Promise<void>;
+  getFolderHandle(): Promise<FileSystemDirectoryHandle | undefined>;
+  setFolderHandle(handle: FileSystemDirectoryHandle | null): Promise<void>;
+}
+
 export interface ChangeHistoryRepository {
   add(entries: readonly ChangeHistory[]): Promise<void>;
   /** Changes for one entity, newest first. */
@@ -218,6 +250,8 @@ export interface JournalRepositories {
   forecasts: ForecastRepository;
   reviews: ReviewRepository;
   ai: AIRepository;
+  backup: BackupStore;
+  snapshots: SnapshotStore;
   changeHistory: ChangeHistoryRepository;
   trash: TrashRepository;
   settings: SettingsRepository;

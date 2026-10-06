@@ -1,9 +1,14 @@
 import Dexie from "dexie";
+import { createBackupStore } from "@/lib/db/backup-store";
 import type { JournalDb } from "@/lib/db/journal-db";
+import { SnapshotsDb } from "@/lib/db/snapshots-db";
 import {
   DEFAULT_PSYCHOLOGY_EMOTIONS,
   DEFAULT_PSYCHOLOGY_RATINGS,
   DEFAULT_REQUIRED_FIELDS,
+  DEFAULT_BACKUP_SETTINGS,
+  DEFAULT_FORECAST_DEFAULTS,
+  DEFAULT_REMINDERS,
   DEFAULT_SESSIONS,
 } from "@/lib/domain/defaults";
 import { compareFills } from "@/lib/domain/fills";
@@ -17,6 +22,7 @@ import {
   aiReviewSchema,
   appSettingsSchema,
   assetSchema,
+  backupMetadataSchema,
   changeHistorySchema,
   forecastRevisionSchema,
   forecastSchema,
@@ -52,6 +58,7 @@ import type {
   ScreenshotRepository,
   SettingsRepository,
   SetupRepository,
+  SnapshotStore,
   TradeEventRepository,
   TradeRepository,
   TrashRepository,
@@ -373,6 +380,27 @@ function createAIRepository(db: JournalDb): AIRepository {
   };
 }
 
+function createSnapshotStore(db: SnapshotsDb): SnapshotStore {
+  return {
+    async list() {
+      const records = await db.snapshots.orderBy("createdAt").reverse().toArray();
+      return records.map((r) => backupMetadataSchema.parse(r)); // strips the payload
+    },
+    getPayload: async (id) => (await db.snapshots.get(id))?.payload,
+    async save(meta, payload) {
+      await db.snapshots.put({ ...backupMetadataSchema.parse(meta), payload });
+    },
+    async delete(ids) {
+      await db.snapshots.bulkDelete([...ids]);
+    },
+    getFolderHandle: async () => (await db.handles.get("folder"))?.handle,
+    async setFolderHandle(handle) {
+      if (handle) await db.handles.put({ id: "folder", handle });
+      else await db.handles.delete("folder");
+    },
+  };
+}
+
 function createChangeHistoryRepository(db: JournalDb): ChangeHistoryRepository {
   const forEntity = (entityType: string, entityId: EntityId) =>
     db.changeHistory.where("[entityType+entityId]").equals([entityType, entityId]);
@@ -432,6 +460,9 @@ function defaultAppSettings(): AppSettings {
     psychologyRatings: [...DEFAULT_PSYCHOLOGY_RATINGS],
     sessions: DEFAULT_SESSIONS.map((s) => ({ ...s })),
     aiAutoReview: true,
+    reminders: DEFAULT_REMINDERS.map((r) => ({ ...r, weekdays: [...r.weekdays] })),
+    forecastDefaults: { ...DEFAULT_FORECAST_DEFAULTS },
+    backup: { ...DEFAULT_BACKUP_SETTINGS },
   };
 }
 
@@ -465,6 +496,8 @@ export function createDexieRepositories(db: JournalDb): JournalRepositories {
     forecasts: createForecastRepository(db),
     reviews: createReviewRepository(db),
     ai: createAIRepository(db),
+    backup: createBackupStore(db),
+    snapshots: createSnapshotStore(new SnapshotsDb(`${db.name}-snapshots`)),
     changeHistory: createChangeHistoryRepository(db),
     trash: createTrashRepository(db),
     settings: createSettingsRepository(db),

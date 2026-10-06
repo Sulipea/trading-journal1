@@ -12,6 +12,9 @@
 import type Dexie from "dexie";
 import type { Transaction } from "dexie";
 import {
+  DEFAULT_BACKUP_SETTINGS,
+  DEFAULT_FORECAST_DEFAULTS,
+  DEFAULT_REMINDERS,
   DEFAULT_SESSIONS,
   DEFAULT_PSYCHOLOGY_EMOTIONS,
   DEFAULT_PSYCHOLOGY_RATINGS,
@@ -136,6 +139,21 @@ export const MIGRATIONS: readonly Migration[] = [
         .toCollection()
         .modify((settings: Record<string, unknown>) => {
           settings.aiAutoReview ??= true;
+        });
+    },
+  },
+  {
+    // Phase 8: reminders, forecast defaults and backup settings.
+    version: 8,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table("appSettings")
+        .toCollection()
+        .modify((settings: Record<string, unknown>) => {
+          settings.reminders ??= DEFAULT_REMINDERS.map((r) => ({ ...r, weekdays: [...r.weekdays] }));
+          settings.forecastDefaults ??= { ...DEFAULT_FORECAST_DEFAULTS };
+          settings.backup ??= { ...DEFAULT_BACKUP_SETTINGS };
         });
     },
   },
