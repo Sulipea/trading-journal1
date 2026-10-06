@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ForecastsView } from "@/components/forecasts/forecasts-view";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "Forecasts" };
 
 export default function ForecastsPage() {
   return (

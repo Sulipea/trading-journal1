@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { NewSetupView } from "@/components/setups/new-setup-view";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "New setup" };
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;

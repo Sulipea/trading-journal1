@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "Analytics" };
 
 export default function AnalyticsPage() {
   return (

@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ReviewsView } from "@/components/reviews/reviews-view";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "Reviews" };
 
 export default function ReviewsPage() {
   return (

@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { RulesView } from "@/components/rules/rules-view";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "Rules" };
 
 export default function RulesPage() {
   return (

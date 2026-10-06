@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TrashList } from "@/components/trades/trash-list";
 import { PageHeader } from "@/components/ui/page-header";
+
+export const metadata: Metadata = { title: "Trash" };
 
 export default function TrashPage() {
   return (
