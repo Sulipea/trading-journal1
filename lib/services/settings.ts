@@ -1,5 +1,13 @@
 import { newId, nowIso } from "@/lib/domain/ids";
-import type { AppSettings, RequirableField, SessionOption } from "@/lib/domain/types";
+import { backupSettingsSchema, forecastDefaultsSchema, reminderSchema } from "@/lib/domain/schemas";
+import type {
+  AppSettings,
+  BackupSettings,
+  ForecastDefaults,
+  Reminder,
+  RequirableField,
+  SessionOption,
+} from "@/lib/domain/types";
 import type { JournalRepositories } from "@/lib/repositories/types";
 
 export function isValidTimezone(timezone: string): boolean {
@@ -89,4 +97,33 @@ export async function savePreferences(
   };
   await repos.settings.saveApp(next);
   return next;
+}
+
+/** Save reminders (spec §30). New ones may have an empty id. */
+export async function saveReminders(repos: JournalRepositories, reminders: readonly Reminder[], now: string = nowIso()) {
+  const cleaned = reminders.map((r) =>
+    reminderSchema.parse({
+      ...r,
+      id: r.id || newId(),
+      message: r.message.trim(),
+      time: r.kind === "NEW_TRADE" ? null : r.time,
+      weekdays: [...new Set(r.weekdays)].sort(),
+    }),
+  );
+  for (const r of cleaned) {
+    if (r.kind !== "NEW_TRADE" && r.time === null) throw new Error(`"${r.message}" needs a time.`);
+  }
+  const current = await repos.settings.getApp();
+  await repos.settings.saveApp({ ...current, reminders: cleaned, updatedAt: now });
+}
+
+export async function saveForecastDefaults(repos: JournalRepositories, defaults: ForecastDefaults, now: string = nowIso()) {
+  const current = await repos.settings.getApp();
+  const forecastDefaults = forecastDefaultsSchema.parse({ ...defaults, conditionTags: cleanList(defaults.conditionTags) });
+  await repos.settings.saveApp({ ...current, forecastDefaults, updatedAt: now });
+}
+
+export async function saveBackupSettings(repos: JournalRepositories, backup: BackupSettings, now: string = nowIso()) {
+  const current = await repos.settings.getApp();
+  await repos.settings.saveApp({ ...current, backup: backupSettingsSchema.parse(backup), updatedAt: now });
 }

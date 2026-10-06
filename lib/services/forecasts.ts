@@ -63,6 +63,28 @@ function normalizeContent(content: ForecastContent): ForecastContent {
 
 // ── lifecycle ────────────────────────────────────────────────────────────
 
+/**
+ * Starting content for a new forecast from the forecast defaults (spec §36):
+ * default confidence and condition tags, and optionally the key levels of
+ * the most recent earlier forecast (copied with new ids, unlinked from scenarios).
+ */
+export async function defaultForecastContent(repos: JournalRepositories, date: string): Promise<ForecastContent> {
+  const { forecastDefaults } = await repos.settings.getApp();
+  const content: ForecastContent = {
+    ...emptyForecastContent(),
+    confidence: forecastDefaults.confidence,
+    conditionTags: [...forecastDefaults.conditionTags],
+  };
+  if (forecastDefaults.copyPreviousKeyLevels) {
+    const previous = (await repos.forecasts.list()).find((f) => f.date < date);
+    if (previous) {
+      const latest = latestRevision(await repos.forecasts.listRevisions(previous.id));
+      content.keyLevels = (latest?.content.keyLevels ?? []).map((l) => ({ ...l, id: newId(), scenarioId: null }));
+    }
+  }
+  return content;
+}
+
 /** Start the forecast for a day as a draft. One forecast per day. */
 export async function createForecast(
   repos: JournalRepositories,
