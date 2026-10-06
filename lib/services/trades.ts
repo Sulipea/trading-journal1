@@ -21,6 +21,7 @@ import type {
   RuleCheck,
   RuleGroup,
   Setup,
+  ForecastTradeLink,
   Trade,
   TradeEvent,
   TradeEventType,
@@ -207,12 +208,13 @@ async function readinessFor(
   trade: Trade,
   overrides: ReadinessOverrides = {},
 ): Promise<CloseReadiness> {
-  const [events, psychology, screenshots, settings, ruleContext] = await Promise.all([
+  const [events, psychology, screenshots, settings, ruleContext, forecastLink] = await Promise.all([
     overrides.events ?? repos.tradeEvents.listForTrade(trade.id),
     overrides.psychology ?? repos.psychology.listForTrade(trade.id),
     repos.screenshots.listForTrade(trade.id),
     repos.settings.getApp(),
     loadRuleContext(repos, trade, overrides.ruleChecks),
+    repos.forecasts.getLinkForTrade(trade.id),
   ]);
   return checkCloseReadiness({
     trade,
@@ -221,6 +223,7 @@ async function readinessFor(
     screenshotCount: overrides.screenshotCount ?? screenshots.length,
     requiredFields: settings.requiredFields,
     ...ruleContext,
+    forecastLink: forecastLink ?? null,
   });
 }
 
@@ -578,6 +581,7 @@ export async function permanentlyDelete(repos: JournalRepositories, tradeId: Ent
     await repos.tradeEvents.deleteForTrade(tradeId);
     await repos.psychology.deleteForTrade(tradeId);
     await repos.ruleChecks.deleteForTrade(tradeId);
+    await repos.forecasts.deleteLinkForTrade(tradeId);
     await repos.changeHistory.deleteForEntity(TRADE_ENTITY, tradeId);
     await repos.trash.deleteForEntity(tradeId);
     await repos.trades.delete(tradeId);
@@ -605,6 +609,7 @@ export interface TradeWorkspace {
   ruleGroups: RuleGroup[];
   /** A setup the trade's notes point to, when it has none. Only a suggestion. */
   suggestedSetup: Setup | null;
+  forecastLink: ForecastTradeLink | null;
 }
 
 /** Everything the trade workspace shows, loaded in one call. */
@@ -613,16 +618,18 @@ export async function loadTradeWorkspace(
   tradeId: EntityId,
 ): Promise<TradeWorkspace> {
   const trade = await loadTrade(repos, tradeId);
-  const [events, psychology, screenshots, history, settings, ruleContext, setups, ruleGroups] = await Promise.all([
-    repos.tradeEvents.listForTrade(tradeId),
-    repos.psychology.listForTrade(tradeId),
-    repos.screenshots.listForTrade(tradeId),
-    repos.changeHistory.listForEntity(TRADE_ENTITY, tradeId),
-    repos.settings.getApp(),
-    loadRuleContext(repos, trade),
-    repos.setups.list(),
-    repos.rules.listGroups(),
-  ]);
+  const [events, psychology, screenshots, history, settings, ruleContext, setups, ruleGroups, forecastLink] =
+    await Promise.all([
+      repos.tradeEvents.listForTrade(tradeId),
+      repos.psychology.listForTrade(tradeId),
+      repos.screenshots.listForTrade(tradeId),
+      repos.changeHistory.listForEntity(TRADE_ENTITY, tradeId),
+      repos.settings.getApp(),
+      loadRuleContext(repos, trade),
+      repos.setups.list(),
+      repos.rules.listGroups(),
+      repos.forecasts.getLinkForTrade(tradeId),
+    ]);
   const metrics = computeTradeMetrics(trade, events);
   return {
     trade,
@@ -638,6 +645,7 @@ export async function loadTradeWorkspace(
       screenshotCount: screenshots.length,
       requiredFields: settings.requiredFields,
       ...ruleContext,
+      forecastLink: forecastLink ?? null,
     }),
     metrics,
     quality: qualityForTrade(trade, metrics, ruleContext.ruleChecks),
@@ -647,6 +655,7 @@ export async function loadTradeWorkspace(
     ruleChecks: ruleContext.ruleChecks,
     ruleGroups,
     suggestedSetup: suggestSetupForTrade(trade, setups),
+    forecastLink: forecastLink ?? null,
   };
 }
 
