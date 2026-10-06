@@ -1,11 +1,11 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { SettingsView } from "@/components/settings/settings-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function SettingsPage() {
   return (
-    <ComingSoon
-      title="Settings"
-      phase={2}
-      summary="Starting balance and timezone first; required fields, reminders, AI controls and backups arrive with their features."
-    />
+    <>
+      <PageHeader title="Settings" description="Stored locally in this browser." />
+      <SettingsView />
+    </>
   );
 }
