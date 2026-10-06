@@ -8,14 +8,15 @@ import type { TradeScreenshot } from "@/lib/domain/types";
 import { getRepositories } from "@/lib/repositories";
 import { addScreenshot } from "@/lib/services/screenshots";
 import { prepareImage } from "@/lib/ui/images";
-import { useAssetUrl } from "@/lib/ui/use-asset-url";
+import { useAsset } from "@/lib/ui/use-asset-url";
 import { errorMessage } from "@/lib/ui/use-journal";
 import { cn } from "@/lib/ui/cn";
 import { useWorkspace } from "./context";
 import { Section } from "./section";
 
 function Thumbnail({ screenshot, onOpen }: { screenshot: TradeScreenshot; onOpen: () => void }) {
-  const url = useAssetUrl(screenshot.thumbnailAssetId);
+  const asset = useAsset(screenshot.thumbnailAssetId);
+  const url = asset.url;
   const name = screenshot.caption || screenshot.fileName || "Screenshot";
   return (
     <li>
@@ -29,7 +30,14 @@ function Thumbnail({ screenshot, onOpen }: { screenshot: TradeScreenshot; onOpen
             // eslint-disable-next-line @next/next/no-img-element -- local blob URL, not optimisable
             <img src={url} alt={name} className="size-full object-cover transition group-hover:scale-[1.03]" />
           ) : (
-            <span className="block size-full animate-pulse" />
+            <span
+              className={cn(
+                "flex size-full items-center justify-center px-2 text-center text-xs text-muted",
+                asset.status === "loading" && "animate-pulse",
+              )}
+            >
+              {asset.status === "missing" ? "Image not available" : null}
+            </span>
           )}
         </span>
         <span className="block truncate px-2.5 py-1.5 text-xs text-muted">{name}</span>

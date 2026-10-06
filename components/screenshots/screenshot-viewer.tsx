@@ -19,7 +19,7 @@ import { Button, FormStatus, Input, Select } from "@/components/ui/form";
 import type { AnnotationShape, TradeScreenshot } from "@/lib/domain/types";
 import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { deleteScreenshot, saveAnnotationVersion, updateCaption } from "@/lib/services/screenshots";
-import { useAssetUrl } from "@/lib/ui/use-asset-url";
+import { useAsset } from "@/lib/ui/use-asset-url";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
 import { cn } from "@/lib/ui/cn";
 import { AnnotationLayer } from "./annotation-layer";
@@ -67,7 +67,8 @@ export function ScreenshotViewer({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const imageUrl = useAssetUrl(screenshot.assetId);
+  const image = useAsset(screenshot.assetId);
+  const imageUrl = image.url;
 
   const loadVersions = useCallback(
     (repos: JournalRepositories) => repos.screenshots.listVersions(screenshot.id),
@@ -411,7 +412,9 @@ export function ScreenshotViewer({
                 // eslint-disable-next-line @next/next/no-img-element -- local blob URL, not optimisable
                 <img src={imageUrl} alt={screenshot.caption || "Trade screenshot"} draggable={false} className="size-full" />
               ) : (
-                <div className="flex size-full items-center justify-center text-sm text-white/60">Loading image…</div>
+                <div className="flex size-full items-center justify-center text-sm text-white/60">
+                  {image.status === "missing" ? "Image not available — it wasn't included in the restored backup." : "Loading image…"}
+                </div>
               )}
               <AnnotationLayer
                 shapes={shapes}
