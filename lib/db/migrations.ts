@@ -122,6 +122,23 @@ export const MIGRATIONS: readonly Migration[] = [
       reviewFindings: "id, reviewId",
     },
   },
+  {
+    // Phase 7: locally stored AI output (reviews, pattern discovery, chat) and the auto-review setting.
+    version: 7,
+    stores: {
+      aiReviews: "id, targetId, kind, createdAt",
+      aiConversations: "id, updatedAt",
+      aiMessages: "id, conversationId",
+    },
+    upgrade: async (tx) => {
+      await tx
+        .table("appSettings")
+        .toCollection()
+        .modify((settings: Record<string, unknown>) => {
+          settings.aiAutoReview ??= true;
+        });
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

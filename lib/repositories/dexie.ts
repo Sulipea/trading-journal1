@@ -12,6 +12,9 @@ import {
   ACCOUNT_SETTINGS_ID,
   APP_SETTINGS_ID,
   accountSettingsSchema,
+  aiConversationSchema,
+  aiMessageSchema,
+  aiReviewSchema,
   appSettingsSchema,
   assetSchema,
   changeHistorySchema,
@@ -37,6 +40,7 @@ import {
 } from "@/lib/domain/schemas";
 import type { AccountSettings, AppSettings, EntityId, SetupRule, TradeEvent } from "@/lib/domain/types";
 import type {
+  AIRepository,
   AssetStore,
   ChangeHistoryRepository,
   ForecastRepository,
@@ -333,6 +337,42 @@ function createReviewRepository(db: JournalDb): ReviewRepository {
   };
 }
 
+function createAIRepository(db: JournalDb): AIRepository {
+  const newestFirst = <T extends { createdAt: string }>(list: T[]) => list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return {
+    async listReviews(targetId) {
+      return newestFirst(await db.aiReviews.where("targetId").equals(targetId).toArray());
+    },
+    async listReviewsByKind(kind) {
+      return newestFirst(await db.aiReviews.where("kind").equals(kind).toArray());
+    },
+    async saveReview(review) {
+      await db.aiReviews.put(aiReviewSchema.parse(review));
+    },
+    async deleteReviewsForTarget(targetId) {
+      await db.aiReviews.where("targetId").equals(targetId).delete();
+    },
+    getConversation: (id) => db.aiConversations.get(id),
+    listConversations: () => db.aiConversations.orderBy("updatedAt").reverse().toArray(),
+    async saveConversation(conversation) {
+      await db.aiConversations.put(aiConversationSchema.parse(conversation));
+    },
+    async deleteConversation(id) {
+      await db.transaction("rw", db.aiConversations, db.aiMessages, async () => {
+        await db.aiMessages.where("conversationId").equals(id).delete();
+        await db.aiConversations.delete(id);
+      });
+    },
+    async listMessages(conversationId) {
+      const messages = await db.aiMessages.where("conversationId").equals(conversationId).toArray();
+      return messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    },
+    async saveMessage(message) {
+      await db.aiMessages.put(aiMessageSchema.parse(message));
+    },
+  };
+}
+
 function createChangeHistoryRepository(db: JournalDb): ChangeHistoryRepository {
   const forEntity = (entityType: string, entityId: EntityId) =>
     db.changeHistory.where("[entityType+entityId]").equals([entityType, entityId]);
@@ -391,6 +431,7 @@ function defaultAppSettings(): AppSettings {
     psychologyEmotions: [...DEFAULT_PSYCHOLOGY_EMOTIONS],
     psychologyRatings: [...DEFAULT_PSYCHOLOGY_RATINGS],
     sessions: DEFAULT_SESSIONS.map((s) => ({ ...s })),
+    aiAutoReview: true,
   };
 }
 
@@ -423,6 +464,7 @@ export function createDexieRepositories(db: JournalDb): JournalRepositories {
     ruleChecks: createRuleCheckRepository(db),
     forecasts: createForecastRepository(db),
     reviews: createReviewRepository(db),
+    ai: createAIRepository(db),
     changeHistory: createChangeHistoryRepository(db),
     trash: createTrashRepository(db),
     settings: createSettingsRepository(db),

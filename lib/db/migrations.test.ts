@@ -71,6 +71,7 @@ describe("schema migrations", () => {
     expect(settings.requiredFields).toEqual(DEFAULT_REQUIRED_FIELDS);
     expect(settings.psychologyEmotions.length).toBeGreaterThan(0);
     expect(settings.sessions.map((s) => s.id)).toContain("NY_AM");
+    expect(settings.aiAutoReview).toBe(true);
 
     db.close();
   });

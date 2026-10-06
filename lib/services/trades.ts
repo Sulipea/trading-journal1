@@ -582,6 +582,7 @@ export async function permanentlyDelete(repos: JournalRepositories, tradeId: Ent
     await repos.psychology.deleteForTrade(tradeId);
     await repos.ruleChecks.deleteForTrade(tradeId);
     await repos.forecasts.deleteLinkForTrade(tradeId);
+    await repos.ai.deleteReviewsForTarget(tradeId);
     await repos.changeHistory.deleteForEntity(TRADE_ENTITY, tradeId);
     await repos.trash.deleteForEntity(tradeId);
     await repos.trades.delete(tradeId);

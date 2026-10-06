@@ -1,6 +1,9 @@
 import type { z } from "zod";
 import type {
   accountSettingsSchema,
+  aiConversationSchema,
+  aiMessageSchema,
+  aiReviewSchema,
   aiStatusSchema,
   annotationShapeSchema,
   appSettingsSchema,
@@ -109,3 +112,6 @@ export type ReviewSection = z.infer<typeof reviewSectionSchema>;
 export type FindingKind = z.infer<typeof findingKindSchema>;
 export type Review = z.infer<typeof reviewSchema>;
 export type ReviewFinding = z.infer<typeof reviewFindingSchema>;
+export type AIReview = z.infer<typeof aiReviewSchema>;
+export type AIConversation = z.infer<typeof aiConversationSchema>;
+export type AIMessage = z.infer<typeof aiMessageSchema>;

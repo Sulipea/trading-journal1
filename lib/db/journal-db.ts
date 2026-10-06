@@ -2,6 +2,9 @@ import Dexie, { type EntityTable } from "dexie";
 import type {
   AccountSettings,
   AppSettings,
+  AIConversation,
+  AIMessage,
+  AIReview,
   Asset,
   ChangeHistory,
   Forecast,
@@ -49,6 +52,9 @@ export class JournalDb extends Dexie {
   forecastTradeLinks!: EntityTable<ForecastTradeLink, "id">;
   reviews!: EntityTable<Review, "id">;
   reviewFindings!: EntityTable<ReviewFinding, "id">;
+  aiReviews!: EntityTable<AIReview, "id">;
+  aiConversations!: EntityTable<AIConversation, "id">;
+  aiMessages!: EntityTable<AIMessage, "id">;
   changeHistory!: EntityTable<ChangeHistory, "id">;
   trashItems!: EntityTable<TrashItem, "id">;
   accountSettings!: EntityTable<AccountSettings, "id">;

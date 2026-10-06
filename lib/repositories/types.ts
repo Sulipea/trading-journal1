@@ -8,6 +8,9 @@
 import type {
   AccountSettings,
   AppSettings,
+  AIConversation,
+  AIMessage,
+  AIReview,
   Asset,
   ChangeHistory,
   EntityId,
@@ -163,6 +166,24 @@ export interface ReviewRepository {
   deleteFindings(ids: readonly EntityId[]): Promise<void>;
 }
 
+/** Locally stored AI output. Separate from journal data; nothing here changes trades. */
+export interface AIRepository {
+  /** AI reviews for a trade or a periodic review, newest first. */
+  listReviews(targetId: EntityId): Promise<AIReview[]>;
+  /** Latest reviews of a kind (e.g. pattern discovery), newest first. */
+  listReviewsByKind(kind: AIReview["kind"]): Promise<AIReview[]>;
+  saveReview(review: AIReview): Promise<void>;
+  deleteReviewsForTarget(targetId: EntityId): Promise<void>;
+  getConversation(id: EntityId): Promise<AIConversation | undefined>;
+  /** Conversations, most recently updated first. */
+  listConversations(): Promise<AIConversation[]>;
+  saveConversation(conversation: AIConversation): Promise<void>;
+  deleteConversation(id: EntityId): Promise<void>;
+  /** Messages of a conversation, oldest first. */
+  listMessages(conversationId: EntityId): Promise<AIMessage[]>;
+  saveMessage(message: AIMessage): Promise<void>;
+}
+
 export interface ChangeHistoryRepository {
   add(entries: readonly ChangeHistory[]): Promise<void>;
   /** Changes for one entity, newest first. */
@@ -196,6 +217,7 @@ export interface JournalRepositories {
   ruleChecks: RuleCheckRepository;
   forecasts: ForecastRepository;
   reviews: ReviewRepository;
+  ai: AIRepository;
   changeHistory: ChangeHistoryRepository;
   trash: TrashRepository;
   settings: SettingsRepository;

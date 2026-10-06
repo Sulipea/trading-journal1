@@ -493,6 +493,47 @@ export const reviewFindingSchema = z.object({
   order: z.number().int(),
 });
 
+// ── AI (spec §32–33) ──────────────────────────────────────────────────────
+// AI output is stored locally and kept apart from journal data: the AI never
+// writes trades, rules, setups or forecasts.
+
+/** Short trade reference sent to the AI (e.g. "T3") → trade id. */
+const aiRefs = z.record(z.string(), id);
+
+export const aiReviewSchema = z.object({
+  ...entityBase,
+  /** TRADE: post-close trade review; PERIOD: weekly/monthly review; PATTERNS: pattern discovery. */
+  kind: z.enum(["TRADE", "PERIOD", "PATTERNS"]),
+  /** Trade id or review id; null for pattern discovery. */
+  targetId: id.nullable(),
+  status: z.enum(["COMPLETE", "FAILED"]),
+  model: z.string(),
+  /** The validated AI output (shape depends on `kind`). Null when failed. */
+  output: z.unknown(),
+  refs: aiRefs,
+  /** Screenshots the user chose to include. */
+  screenshotIds: z.array(id),
+  error: z.string(),
+});
+
+export const aiConversationSchema = z.object({
+  ...entityBase,
+  title: z.string(),
+});
+
+export const aiMessageSchema = z.object({
+  ...entityBase,
+  conversationId: id,
+  role: z.enum(["USER", "ASSISTANT"]),
+  /** The user's question; empty for assistant messages. */
+  text: z.string(),
+  /** Validated chat output for assistant messages. */
+  output: z.unknown(),
+  refs: aiRefs,
+  model: z.string(),
+  error: z.string(),
+});
+
 export const ACCOUNT_SETTINGS_ID = "00000000-0000-4000-8000-000000000001";
 export const APP_SETTINGS_ID = "00000000-0000-4000-8000-000000000002";
 
@@ -517,4 +558,6 @@ export const appSettingsSchema = z.object({
   psychologyRatings: z.array(z.string().min(1)),
   /** Trading sessions offered on trades, in display order. */
   sessions: z.array(sessionOptionSchema),
+  /** When AI is enabled, review each trade automatically when it closes (spec §32). */
+  aiAutoReview: z.boolean(),
 });
