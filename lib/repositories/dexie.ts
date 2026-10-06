@@ -15,6 +15,11 @@ import {
   appSettingsSchema,
   assetSchema,
   changeHistorySchema,
+  forecastRevisionSchema,
+  forecastSchema,
+  forecastTradeLinkSchema,
+  levelInteractionSchema,
+  marketSnapshotSchema,
   psychologyEntrySchema,
   ruleCheckSchema,
   ruleGroupSchema,
@@ -32,6 +37,7 @@ import type { AccountSettings, AppSettings, EntityId, SetupRule, TradeEvent } fr
 import type {
   AssetStore,
   ChangeHistoryRepository,
+  ForecastRepository,
   JournalRepositories,
   PsychologyRepository,
   RuleCheckRepository,
@@ -247,6 +253,55 @@ function createRuleCheckRepository(db: JournalDb): RuleCheckRepository {
   };
 }
 
+function createForecastRepository(db: JournalDb): ForecastRepository {
+  return {
+    get: (id) => db.forecasts.get(id),
+    getByDate: (date) => db.forecasts.where("date").equals(date).first(),
+    list: () => db.forecasts.orderBy("date").reverse().toArray(),
+
+    async save(forecast) {
+      await db.forecasts.put(forecastSchema.parse(forecast));
+    },
+
+    getRevision: (id) => db.forecastRevisions.get(id),
+    listRevisions: (forecastId) =>
+      db.forecastRevisions
+        .where("[forecastId+number]")
+        .between([forecastId, Dexie.minKey], [forecastId, Dexie.maxKey])
+        .toArray(),
+    listAllRevisions: () => db.forecastRevisions.toArray(),
+
+    async saveRevision(revision) {
+      await db.forecastRevisions.put(forecastRevisionSchema.parse(revision));
+    },
+
+    listSnapshots: (forecastId) => db.marketSnapshots.where("forecastId").equals(forecastId).sortBy("at"),
+
+    async saveSnapshot(snapshot) {
+      await db.marketSnapshots.put(marketSnapshotSchema.parse(snapshot));
+    },
+
+    listInteractions: (forecastId) => db.levelInteractions.where("forecastId").equals(forecastId).toArray(),
+    listAllInteractions: () => db.levelInteractions.toArray(),
+
+    async saveInteraction(interaction) {
+      await db.levelInteractions.put(levelInteractionSchema.parse(interaction));
+    },
+
+    getLinkForTrade: (tradeId) => db.forecastTradeLinks.where("tradeId").equals(tradeId).first(),
+    listLinks: (forecastId) => db.forecastTradeLinks.where("forecastId").equals(forecastId).toArray(),
+    listAllLinks: () => db.forecastTradeLinks.toArray(),
+
+    async saveLink(link) {
+      await db.forecastTradeLinks.put(forecastTradeLinkSchema.parse(link));
+    },
+
+    async deleteLinkForTrade(tradeId) {
+      await db.forecastTradeLinks.where("tradeId").equals(tradeId).delete();
+    },
+  };
+}
+
 function createChangeHistoryRepository(db: JournalDb): ChangeHistoryRepository {
   const forEntity = (entityType: string, entityId: EntityId) =>
     db.changeHistory.where("[entityType+entityId]").equals([entityType, entityId]);
@@ -329,6 +384,7 @@ export function createDexieRepositories(db: JournalDb): JournalRepositories {
     setups: createSetupRepository(db),
     rules: createRuleRepository(db),
     ruleChecks: createRuleCheckRepository(db),
+    forecasts: createForecastRepository(db),
     changeHistory: createChangeHistoryRepository(db),
     trash: createTrashRepository(db),
     settings: createSettingsRepository(db),

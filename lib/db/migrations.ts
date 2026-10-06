@@ -103,6 +103,17 @@ export const MIGRATIONS: readonly Migration[] = [
         });
     },
   },
+  {
+    // Phase 4: daily forecasts with immutable revisions, snapshots, level interactions and trade links.
+    version: 5,
+    stores: {
+      forecasts: "id, &date, status",
+      forecastRevisions: "id, forecastId, &[forecastId+number]",
+      marketSnapshots: "id, forecastId, at",
+      levelInteractions: "id, forecastId, &[forecastId+levelId]",
+      forecastTradeLinks: "id, &tradeId, forecastId",
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

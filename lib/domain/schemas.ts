@@ -53,6 +53,7 @@ export const requirableFieldSchema = z.enum([
   "psychologyDuring",
   "psychologyAfter",
   "screenshot",
+  "forecast",
 ]);
 
 export const requirementOverrideSchema = z.object({
@@ -280,6 +281,168 @@ export const ruleCheckSchema = z.object({
   severity: ruleSeveritySchema,
   status: ruleCheckStatusSchema,
   acknowledged: z.boolean(),
+  reason: z.string(),
+});
+
+// ── forecasts (spec §21–29) ───────────────────────────────────────────────
+
+/** Calendar day in the journal timezone, e.g. `2026-10-06`. */
+export const tradingDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export const biasSchema = z.enum(["BULLISH", "BEARISH", "NEUTRAL"]);
+export const confidenceSchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+export const gexRegimeSchema = z.enum(["POSITIVE", "NEGATIVE", "NEUTRAL"]);
+export const levelTypeSchema = z.enum([
+  "SUPPORT",
+  "RESISTANCE",
+  "PIVOT",
+  "CALL_WALL",
+  "PUT_WALL",
+  "ZERO_GAMMA",
+  "VWAP",
+  "PRIOR_HIGH",
+  "PRIOR_LOW",
+  "PRIOR_CLOSE",
+  "OVERNIGHT_HIGH",
+  "OVERNIGHT_LOW",
+  "OTHER",
+]);
+export const levelPrioritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+/** How price behaves at a level: expected in the forecast, observed afterwards. */
+export const levelReactionSchema = z.enum(["REACTION", "CONTINUATION", "REJECTION", "BREAK"]);
+
+/** A key level or zone. Stable `id` across revisions so interactions and links survive revisions. */
+export const forecastKeyLevelSchema = z.object({
+  id,
+  price,
+  /** Upper bound when the level is a zone. */
+  priceTo: price.nullable(),
+  /** Empty = global (all instruments); one = instrument-specific; several = multi-instrument. */
+  instruments: z.array(instrumentRootSchema),
+  label: z.string(),
+  type: levelTypeSchema,
+  priority: levelPrioritySchema,
+  expectedReaction: levelReactionSchema.nullable(),
+  expectedNotes: z.string(),
+  scenarioId: id.nullable(),
+});
+
+/** IF / THEN / INVALIDATION scenario. Stable `id` across revisions so trades can link to it. */
+export const forecastScenarioSchema = z.object({
+  id,
+  title: z.string().trim().min(1),
+  if: z.string(),
+  then: z.string(),
+  invalidation: z.string(),
+  /** Empty = all instruments. */
+  instruments: z.array(instrumentRootSchema),
+  setupIds: z.array(id),
+  levelIds: z.array(id),
+  confidence: confidenceSchema.nullable(),
+});
+
+/** Everything a forecast says. Each revision stores a complete copy. */
+export const forecastContentSchema = z.object({
+  bias: biasSchema,
+  marketConditions: z.string(),
+  /** Short condition labels (e.g. Trending, Range, High volatility) for calibration analysis. */
+  conditionTags: z.array(z.string().trim().min(1)),
+  setupIds: z.array(id),
+  invalidation: z.string(),
+  gexRegime: gexRegimeSchema.nullable(),
+  gexValue: z.number().nullable(),
+  confidence: confidenceSchema,
+  /** Optional 0–100. */
+  confidenceScore: z.number().int().min(0).max(100).nullable(),
+  notes: z.string(),
+  scenarios: z.array(forecastScenarioSchema),
+  keyLevels: z.array(forecastKeyLevelSchema),
+});
+
+export const scenarioOutcomeSchema = z.enum(["PLAYED_OUT", "PARTIAL", "NOT_TRIGGERED", "INVALIDATED"]);
+
+/** End-of-day review: what actually happened (spec §29). Separate from the forecast itself. */
+export const forecastReviewSchema = z.object({
+  actualBias: biasSchema.nullable(),
+  actualOutcome: z.string(),
+  /** Scenario id → outcome, for scenarios in the final revision. */
+  scenarioOutcomes: z.record(id, scenarioOutcomeSchema),
+  notes: z.string(),
+  reviewedAt: timestamp,
+});
+
+export const forecastSchema = z.object({
+  ...entityBase,
+  date: tradingDateSchema,
+  /** DRAFT until explicitly finalized; revisions only after that. */
+  status: z.enum(["DRAFT", "FINAL"]),
+  activeRevisionId: id,
+  /** Set when a past day's forecast is manually reopened; cleared when locked again. */
+  reopenedAt: timestamp.nullable(),
+  review: forecastReviewSchema.nullable(),
+});
+
+export const forecastFieldChangeSchema = z.object({
+  /** e.g. `bias`, `scenario:<id>.then`, `level:<id>.price`, `scenario:<id>` (added/removed). */
+  path: z.string().min(1),
+  label: z.string(),
+  oldValue: z.unknown(),
+  newValue: z.unknown(),
+});
+
+/** One version of a forecast. Immutable once finalized (spec §25). */
+export const forecastRevisionSchema = z.object({
+  ...entityBase,
+  forecastId: id,
+  /** 0 = the original forecast. */
+  number: z.number().int().nonnegative(),
+  /** Null only for the original while the forecast is still a draft. */
+  finalizedAt: timestamp.nullable(),
+  /** Why it changed. Empty for the original. */
+  reason: z.string(),
+  changes: z.array(forecastFieldChangeSchema),
+  content: forecastContentSchema,
+  /** The market-condition snapshot that prompted this revision, if any. */
+  snapshotId: id.nullable(),
+});
+
+/** Manual market-condition snapshot taken during the day (spec §24). */
+export const marketSnapshotSchema = z.object({
+  ...entityBase,
+  forecastId: id,
+  at: timestamp,
+  conditions: z.string().trim().min(1),
+  conditionTags: z.array(z.string().trim().min(1)),
+  bias: biasSchema.nullable(),
+  notes: z.string(),
+});
+
+/** What happened at a key level (spec §23). Not part of the forecast, so recording it never revises it. */
+export const levelInteractionSchema = z.object({
+  ...entityBase,
+  forecastId: id,
+  levelId: id,
+  touched: z.boolean(),
+  outcome: levelReactionSchema.nullable(),
+  /** AUTO when confirmed from a detected touch (fills near the level). */
+  source: z.enum(["MANUAL", "AUTO"]),
+  notes: z.string(),
+  tradeIds: z.array(id),
+});
+
+export const forecastAdherenceSchema = z.enum(["YES", "PARTIAL", "NO"]);
+
+/** Links a trade to a forecast and scenario, or marks it unplanned (spec §27). */
+export const forecastTradeLinkSchema = z.object({
+  ...entityBase,
+  tradeId: id,
+  planned: z.boolean(),
+  forecastId: id.nullable(),
+  scenarioId: id.nullable(),
+  /** Revision active when the trade was opened, if any was finalized by then. */
+  revisionIdAtEntry: id.nullable(),
+  adherence: forecastAdherenceSchema.nullable(),
+  /** Required for Partially, No and Unplanned. */
   reason: z.string(),
 });
 

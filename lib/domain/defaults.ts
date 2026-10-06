@@ -36,6 +36,7 @@ export const REQUIRABLE_FIELD_LABELS: Readonly<Record<RequirableField, string>> 
   psychologyDuring: "Psychology during trade",
   psychologyAfter: "Psychology after trade",
   screenshot: "At least one screenshot",
+  forecast: "Forecast link (or unplanned)",
 };
 
 /** Required before close unless changed in Settings. */

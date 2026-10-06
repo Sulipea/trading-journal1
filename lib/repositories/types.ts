@@ -11,6 +11,11 @@ import type {
   Asset,
   ChangeHistory,
   EntityId,
+  Forecast,
+  ForecastRevision,
+  ForecastTradeLink,
+  LevelInteraction,
+  MarketSnapshot,
   PsychologyEntry,
   Rule,
   RuleCheck,
@@ -113,6 +118,34 @@ export interface RuleCheckRepository {
   deleteForTrade(tradeId: EntityId): Promise<void>;
 }
 
+export interface ForecastRepository {
+  get(id: EntityId): Promise<Forecast | undefined>;
+  getByDate(date: string): Promise<Forecast | undefined>;
+  /** All forecasts, newest day first. */
+  list(): Promise<Forecast[]>;
+  save(forecast: Forecast): Promise<void>;
+
+  getRevision(id: EntityId): Promise<ForecastRevision | undefined>;
+  /** Revisions of one forecast, original first. */
+  listRevisions(forecastId: EntityId): Promise<ForecastRevision[]>;
+  listAllRevisions(): Promise<ForecastRevision[]>;
+  saveRevision(revision: ForecastRevision): Promise<void>;
+
+  /** Snapshots of one forecast's day, in time order. */
+  listSnapshots(forecastId: EntityId): Promise<MarketSnapshot[]>;
+  saveSnapshot(snapshot: MarketSnapshot): Promise<void>;
+
+  listInteractions(forecastId: EntityId): Promise<LevelInteraction[]>;
+  listAllInteractions(): Promise<LevelInteraction[]>;
+  saveInteraction(interaction: LevelInteraction): Promise<void>;
+
+  getLinkForTrade(tradeId: EntityId): Promise<ForecastTradeLink | undefined>;
+  listLinks(forecastId: EntityId): Promise<ForecastTradeLink[]>;
+  listAllLinks(): Promise<ForecastTradeLink[]>;
+  saveLink(link: ForecastTradeLink): Promise<void>;
+  deleteLinkForTrade(tradeId: EntityId): Promise<void>;
+}
+
 export interface ChangeHistoryRepository {
   add(entries: readonly ChangeHistory[]): Promise<void>;
   /** Changes for one entity, newest first. */
@@ -144,6 +177,7 @@ export interface JournalRepositories {
   setups: SetupRepository;
   rules: RuleRepository;
   ruleChecks: RuleCheckRepository;
+  forecasts: ForecastRepository;
   changeHistory: ChangeHistoryRepository;
   trash: TrashRepository;
   settings: SettingsRepository;

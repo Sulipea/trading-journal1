@@ -4,6 +4,11 @@ import type {
   AppSettings,
   Asset,
   ChangeHistory,
+  Forecast,
+  ForecastRevision,
+  ForecastTradeLink,
+  LevelInteraction,
+  MarketSnapshot,
   PsychologyEntry,
   Rule,
   RuleCheck,
@@ -35,6 +40,11 @@ export class JournalDb extends Dexie {
   rules!: EntityTable<Rule, "id">;
   ruleGroups!: EntityTable<RuleGroup, "id">;
   ruleChecks!: EntityTable<RuleCheck, "id">;
+  forecasts!: EntityTable<Forecast, "id">;
+  forecastRevisions!: EntityTable<ForecastRevision, "id">;
+  marketSnapshots!: EntityTable<MarketSnapshot, "id">;
+  levelInteractions!: EntityTable<LevelInteraction, "id">;
+  forecastTradeLinks!: EntityTable<ForecastTradeLink, "id">;
   changeHistory!: EntityTable<ChangeHistory, "id">;
   trashItems!: EntityTable<TrashItem, "id">;
   accountSettings!: EntityTable<AccountSettings, "id">;

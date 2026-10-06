@@ -4,6 +4,24 @@ import type {
   aiStatusSchema,
   annotationShapeSchema,
   appSettingsSchema,
+  biasSchema,
+  confidenceSchema,
+  forecastAdherenceSchema,
+  forecastContentSchema,
+  forecastFieldChangeSchema,
+  forecastKeyLevelSchema,
+  forecastReviewSchema,
+  forecastRevisionSchema,
+  forecastScenarioSchema,
+  forecastSchema,
+  forecastTradeLinkSchema,
+  gexRegimeSchema,
+  levelInteractionSchema,
+  levelPrioritySchema,
+  levelReactionSchema,
+  levelTypeSchema,
+  marketSnapshotSchema,
+  scenarioOutcomeSchema,
   assetSchema,
   changeHistorySchema,
   directionSchema,
@@ -63,3 +81,21 @@ export type SetupRule = z.infer<typeof setupRuleSchema>;
 export type SetupMergeHistory = z.infer<typeof setupMergeHistorySchema>;
 export type RuleCheckStatus = z.infer<typeof ruleCheckStatusSchema>;
 export type RuleCheck = z.infer<typeof ruleCheckSchema>;
+export type Bias = z.infer<typeof biasSchema>;
+export type Confidence = z.infer<typeof confidenceSchema>;
+export type GexRegime = z.infer<typeof gexRegimeSchema>;
+export type LevelType = z.infer<typeof levelTypeSchema>;
+export type LevelPriority = z.infer<typeof levelPrioritySchema>;
+export type LevelReaction = z.infer<typeof levelReactionSchema>;
+export type ForecastKeyLevel = z.infer<typeof forecastKeyLevelSchema>;
+export type ForecastScenario = z.infer<typeof forecastScenarioSchema>;
+export type ForecastContent = z.infer<typeof forecastContentSchema>;
+export type ScenarioOutcome = z.infer<typeof scenarioOutcomeSchema>;
+export type ForecastReview = z.infer<typeof forecastReviewSchema>;
+export type Forecast = z.infer<typeof forecastSchema>;
+export type ForecastFieldChange = z.infer<typeof forecastFieldChangeSchema>;
+export type ForecastRevision = z.infer<typeof forecastRevisionSchema>;
+export type MarketSnapshot = z.infer<typeof marketSnapshotSchema>;
+export type LevelInteraction = z.infer<typeof levelInteractionSchema>;
+export type ForecastAdherence = z.infer<typeof forecastAdherenceSchema>;
+export type ForecastTradeLink = z.infer<typeof forecastTradeLinkSchema>;

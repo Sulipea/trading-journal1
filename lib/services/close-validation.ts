@@ -6,6 +6,7 @@ import { FillSequenceError, summarizeFills } from "@/lib/calculations/trade";
 import { checklistIssues, type ChecklistIssue } from "@/lib/domain/checklist";
 import { CONTRACT_SPECS } from "@/lib/domain/instruments";
 import type {
+  ForecastTradeLink,
   PsychologyEntry,
   PsychologyPhase,
   RequirableField,
@@ -28,6 +29,8 @@ export interface CloseContext {
   /** Rules on the trade's checklist, and the trade's answers. */
   rules?: readonly Rule[];
   ruleChecks?: readonly RuleCheck[];
+  /** The trade's forecast link, or null if it hasn't been linked or marked unplanned. */
+  forecastLink?: ForecastTradeLink | null;
 }
 
 export interface CloseReadiness {
@@ -94,6 +97,8 @@ export function isFieldMissing(field: RequirableField, ctx: Omit<CloseContext, "
       return isBlank(trade[field]);
     case "screenshot":
       return ctx.screenshotCount === 0;
+    case "forecast":
+      return !ctx.forecastLink;
     default:
       return false;
   }
