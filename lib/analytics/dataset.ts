@@ -52,17 +52,28 @@ export interface DatasetContext {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Creating a formatter is far more expensive than using one, so keep one per timezone.
+const formatters = new Map<string, Intl.DateTimeFormat>();
+function zonedFormatter(timezone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+      weekday: "short",
+    });
+    formatters.set(timezone, formatter);
+  }
+  return formatter;
+}
+
 /** Calendar day, hour and weekday of an instant in a timezone. */
 export function zonedParts(iso: string, timezone: string): { day: string; hour: number; weekday: number } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-    weekday: "short",
-  }).formatToParts(new Date(iso));
+  const parts = zonedFormatter(timezone).formatToParts(new Date(iso));
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
   return {
     day: `${get("year")}-${get("month")}-${get("day")}`,

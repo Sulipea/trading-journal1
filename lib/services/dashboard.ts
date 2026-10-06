@@ -33,13 +33,15 @@ export interface DashboardSummary {
 
 /** Calendar day (YYYY-MM-DD) of an instant in the given timezone. */
 export function calendarDay(instant: Date | string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(typeof instant === "string" ? new Date(instant) : instant);
+  let formatter = dayFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+    dayFormatters.set(timezone, formatter);
+  }
+  return formatter.format(typeof instant === "string" ? new Date(instant) : instant);
 }
+
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
 
 /** Net P&L of a closed trade from its fills, or `null` if it is not closed and flat. */
 export function closedTradeResult(
