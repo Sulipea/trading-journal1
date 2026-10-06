@@ -10,6 +10,7 @@ import type { RequirableField, SessionOption } from "@/lib/domain/types";
 import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { savePreferences, saveStartingBalance } from "@/lib/services/settings";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
+import { AISettings } from "./ai-settings";
 import { SessionsEditor } from "./sessions-editor";
 
 type Status = { kind: "saved" | "error"; message: string } | null;
@@ -196,8 +197,10 @@ export function SettingsView() {
         </p>
       </Card>
 
+      <AISettings />
+
       <p className="text-sm text-muted">
-        Forecast defaults, reminders, AI controls and backups will appear here as those features are built.
+        Forecast defaults, reminders and backups will appear here as those features are built.
       </p>
     </div>
   );

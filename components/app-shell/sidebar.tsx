@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CandlestickChart, Plus } from "lucide-react";
+import { CandlestickChart, Plus, Sparkles } from "lucide-react";
 import { NAV_ITEMS, isActivePath } from "@/lib/navigation";
 import { cn } from "@/lib/ui/cn";
 
@@ -48,6 +48,19 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      <Link
+        href="/ask"
+        aria-current={isActivePath(pathname, "/ask") ? "page" : undefined}
+        className={cn(
+          "mt-4 flex items-center gap-3 rounded-md border border-dashed border-border px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+          isActivePath(pathname, "/ask") ? "bg-surface-muted font-medium" : "text-muted hover:text-foreground",
+        )}
+      >
+        <Sparkles aria-hidden className="size-4" />
+        Ask AI
+        <span className="ml-auto text-[10px] tracking-wide uppercase">optional</span>
+      </Link>
 
       <p className="mt-auto px-3 text-xs text-muted">Journal data is stored locally in this browser.</p>
     </aside>

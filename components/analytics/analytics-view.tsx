@@ -21,6 +21,7 @@ import { loadAnalyticsDataset, type AnalyticsDataset } from "@/lib/services/anal
 import { cn } from "@/lib/ui/cn";
 import { useJournalQuery } from "@/lib/ui/use-journal";
 import { FilterBar } from "./filter-bar";
+import { PatternsAICard } from "@/components/ai/patterns-ai-card";
 import { SampleSize } from "./group-stats";
 import { TradeEvidence } from "./trade-evidence";
 
@@ -77,6 +78,7 @@ function Analytics({ data }: { data: AnalyticsDataset }) {
           <Breakdowns rows={rows} timezone={data.timezone} />
           <Psychology rows={rows} data={data} />
           <Patterns rows={rows} timezone={data.timezone} />
+          <PatternsAICard timezone={data.timezone} />
         </>
       )}
     </div>

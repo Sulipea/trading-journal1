@@ -14,6 +14,7 @@ import { periodLabel } from "@/lib/reviews/periods";
 import { loadReviewDetail, regenerateReview, saveReviewNotes, setFindingImportant, type ReviewDetail } from "@/lib/services/reviews";
 import { errorMessage, useJournalQuery } from "@/lib/ui/use-journal";
 import { FindingItem } from "./finding-item";
+import { PeriodAICard } from "@/components/ai/period-ai-card";
 
 export function ReviewDetailView({ reviewId }: { reviewId: string }) {
   const load = useCallback((repos: JournalRepositories) => loadReviewDetail(repos, reviewId), [reviewId]);
@@ -105,6 +106,8 @@ function Detail({ detail, reload }: { detail: ReviewDetail; reload: () => void }
           </details>
         );
       })}
+
+      <PeriodAICard reviewId={review.id} timezone={detail.timezone} />
 
       <Card>
         <h2 className="text-base font-semibold">Your notes</h2>

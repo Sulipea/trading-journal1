@@ -27,6 +27,8 @@ import { WorkspaceContext, useWorkspace, type WorkspaceContextValue } from "./co
 import { FillsTimeline } from "./fills-timeline";
 import { QualityCard } from "./quality-card";
 import { TradeReviewCard } from "./trade-review-card";
+import { AIReviewCard } from "./ai-review-card";
+import { autoReviewOnClose } from "@/lib/ui/ai";
 import { TradeSections } from "./sections";
 
 /** `forVersion` ties an error to the trade version it was about, so it disappears once the trade changes. */
@@ -74,6 +76,7 @@ export function TradeWorkspaceView({ tradeId }: { tradeId: string }) {
             <FillsTimeline />
             <QualityCard />
             <TradeReviewCard />
+            <AIReviewCard />
           </div>
         </div>
       </div>
@@ -137,7 +140,13 @@ function WorkspaceHeader() {
                 variant="primary"
                 disabled={busy || !ws.readiness.positionFlat}
                 title={ws.readiness.positionFlat ? undefined : "Exit every open contract first"}
-                onClick={() => run(() => closeTrade(getRepositories(), trade.id), "Trade closed.")}
+                onClick={() =>
+                  run(async () => {
+                    await closeTrade(getRepositories(), trade.id);
+                    // The trade is saved first; an AI review (if enabled) runs afterwards and can't affect it.
+                    void autoReviewOnClose(trade.id);
+                  }, "Trade closed.")
+                }
               >
                 <CheckCircle2 aria-hidden className="size-4" />
                 Close trade
