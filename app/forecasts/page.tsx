@@ -1,11 +1,14 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import { ForecastsView } from "@/components/forecasts/forecasts-view";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ForecastsPage() {
   return (
-    <ComingSoon
-      title="Forecasts"
-      phase={4}
-      summary="Daily forecasts with scenarios, key levels, GEX, revisions and end-of-day review."
-    />
+    <>
+      <PageHeader
+        title="Forecasts"
+        description="Your daily market forecast, how it changed, and how it — and you — performed."
+      />
+      <ForecastsView />
+    </>
   );
 }

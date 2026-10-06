@@ -10,7 +10,8 @@ import { getRepositories } from "@/lib/repositories";
 import { savePsychology, updateTrade, type TradePatch } from "@/lib/services/trades";
 import { cn } from "@/lib/ui/cn";
 import { formNumber, formText, useWorkspace } from "./context";
-import { LaterPhase, Section, SectionForm } from "./section";
+import { Section, SectionForm } from "./section";
+import { ForecastSection } from "./forecast-section";
 import { RulesChecklistSection } from "./rules-checklist";
 import { ScreenshotsSection } from "./screenshots";
 import { SetupSection } from "./setup-section";
@@ -472,9 +473,7 @@ export function TradeSections() {
         label="Why did you take this trade?"
         hint="Thesis, trigger and what would prove you wrong."
       />
-      <Section number={3} title="Forecast / context">
-        <LaterPhase phase={4}>Link this trade to a daily forecast and scenario.</LaterPhase>
-      </Section>
+      <ForecastSection number={3} />
       <SetupSection number={4} />
       <RiskSection />
       <PsychologySection />
