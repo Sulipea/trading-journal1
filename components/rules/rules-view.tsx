@@ -366,7 +366,8 @@ function StatsCell({ stats }: { stats: GroupStats }) {
     <div className="space-y-0.5">
       <SignedValue value={stats.netPnl}>{formatMoney(stats.netPnl, { signed: true })}</SignedValue>
       <p className="text-xs text-muted">
-        {formatR(stats.averageR)} avg · quality {stats.averageQuality === null ? "—" : Math.round(stats.averageQuality)}
+        Avg R {formatR(stats.averageR)} · avg quality{" "}
+        {stats.averageQuality === null ? "—" : Math.round(stats.averageQuality)}
       </p>
       <SampleSize stats={stats} />
     </div>
