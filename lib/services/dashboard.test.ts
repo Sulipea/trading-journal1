@@ -1,32 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { newId } from "@/lib/domain/ids";
 import type { Trade, TradeEvent } from "@/lib/domain/types";
+import { makeTrade } from "@/lib/test/fixtures";
 import { buildDashboardSummary, calendarDay } from "./dashboard";
 
 const TZ = "America/New_York";
 
 function trade(overrides: Partial<Trade>): Trade {
-  return {
-    id: newId(),
-    createdAt: "2026-10-01T13:30:00.000Z",
-    updatedAt: "2026-10-01T13:30:00.000Z",
+  return makeTrade({
     status: "CLOSED",
-    symbol: "ESZ6",
-    root: "ES",
-    direction: "LONG",
-    plannedEntry: 5000,
-    plannedStop: 4995,
-    plannedTarget: null,
     plannedContracts: 1,
-    finalStop: null,
-    finalTarget: null,
-    fees: 0,
-    notes: "",
     openedAt: "2026-10-01T13:30:00.000Z",
     closedAt: "2026-10-01T14:00:00.000Z",
-    deletedAt: null,
     ...overrides,
-  };
+  });
 }
 
 function fills(tradeId: string, entryPx: number, exitPx: number): TradeEvent[] {

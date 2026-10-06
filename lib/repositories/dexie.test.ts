@@ -3,50 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { JournalDb } from "@/lib/db/journal-db";
 import { SCHEMA_VERSION } from "@/lib/db/migrations";
 import { newId } from "@/lib/domain/ids";
-import type { Trade, TradeEvent } from "@/lib/domain/types";
+import { T0, makeEvent as event, makeTrade } from "@/lib/test/fixtures";
 import { createDexieRepositories } from "./dexie";
 import type { JournalRepositories } from "./types";
-
-const T0 = "2026-10-06T14:00:00.000Z";
-
-function makeTrade(overrides: Partial<Trade> = {}): Trade {
-  return {
-    id: newId(),
-    createdAt: T0,
-    updatedAt: T0,
-    status: "OPEN",
-    symbol: "ESZ6",
-    root: "ES",
-    direction: "LONG",
-    plannedEntry: 5000,
-    plannedStop: 4995,
-    plannedTarget: null,
-    plannedContracts: 1,
-    finalStop: null,
-    finalTarget: null,
-    fees: 0,
-    notes: "",
-    openedAt: T0,
-    closedAt: null,
-    deletedAt: null,
-    ...overrides,
-  };
-}
-
-function makeEvent(tradeId: string, timestamp: string): TradeEvent {
-  return {
-    id: newId(),
-    createdAt: T0,
-    updatedAt: T0,
-    tradeId,
-    type: "ENTRY",
-    price: 5000,
-    quantity: 1,
-    timestamp,
-    reason: "",
-    notes: "",
-  };
-}
 
 let db: JournalDb;
 let repos: JournalRepositories;
@@ -104,11 +63,11 @@ describe("TradeRepository", () => {
 describe("TradeEventRepository", () => {
   it("returns a trade's events in chronological order", async () => {
     const tradeId = newId();
-    const second = makeEvent(tradeId, "2026-10-06T14:10:00.000Z");
-    const first = makeEvent(tradeId, "2026-10-06T14:05:00.000Z");
+    const second = event({ tradeId, timestamp: "2026-10-06T14:10:00.000Z" });
+    const first = event({ tradeId, timestamp: "2026-10-06T14:05:00.000Z" });
     await repos.tradeEvents.save(second);
     await repos.tradeEvents.save(first);
-    await repos.tradeEvents.save(makeEvent(newId(), T0));
+    await repos.tradeEvents.save(event({ tradeId: newId(), timestamp: T0 }));
 
     expect((await repos.tradeEvents.listForTrade(tradeId)).map((e) => e.id)).toEqual([
       first.id,
@@ -119,9 +78,9 @@ describe("TradeEventRepository", () => {
   it("groups events for several trades", async () => {
     const a = newId();
     const b = newId();
-    await repos.tradeEvents.save(makeEvent(a, T0));
-    await repos.tradeEvents.save(makeEvent(b, T0));
-    await repos.tradeEvents.save(makeEvent(b, "2026-10-06T15:00:00.000Z"));
+    await repos.tradeEvents.save(event({ tradeId: a, timestamp: T0 }));
+    await repos.tradeEvents.save(event({ tradeId: b, timestamp: T0 }));
+    await repos.tradeEvents.save(event({ tradeId: b, timestamp: "2026-10-06T15:00:00.000Z" }));
 
     const grouped = await repos.tradeEvents.listForTrades([a, b, newId()]);
     expect(grouped.get(a)).toHaveLength(1);
@@ -140,5 +99,80 @@ describe("SettingsRepository", () => {
     const account = await repos.settings.getAccount();
     await repos.settings.saveAccount({ ...account, startingBalance: 25_000 });
     expect((await repos.settings.getAccount()).startingBalance).toBe(25_000);
+  });
+});
+
+describe("PsychologyRepository", () => {
+  it("allows only one entry per trade and phase", async () => {
+    const tradeId = newId();
+    const entry = {
+      id: newId(),
+      createdAt: T0,
+      updatedAt: T0,
+      tradeId,
+      phase: "BEFORE" as const,
+      emotions: ["Calm"],
+      ratings: { Focus: 4 },
+      text: "",
+    };
+    await repos.psychology.save(entry);
+    await expect(repos.psychology.save({ ...entry, id: newId() })).rejects.toThrow();
+    await repos.psychology.save({ ...entry, id: newId(), phase: "AFTER" });
+    expect(await repos.psychology.listForTrade(tradeId)).toHaveLength(2);
+  });
+
+  it("rejects ratings outside 1–5", async () => {
+    await expect(
+      repos.psychology.save({
+        id: newId(),
+        createdAt: T0,
+        updatedAt: T0,
+        tradeId: newId(),
+        phase: "DURING",
+        emotions: [],
+        ratings: { Focus: 6 },
+        text: "",
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("ChangeHistoryRepository", () => {
+  it("lists an entity's changes newest first", async () => {
+    const entityId = newId();
+    const change = (field: string, changedAt: string) => ({
+      id: newId(),
+      createdAt: changedAt,
+      updatedAt: changedAt,
+      entityType: "trade",
+      entityId,
+      field,
+      oldValue: 1,
+      newValue: 2,
+      changedAt,
+    });
+    await repos.changeHistory.add([
+      change("fees", "2026-10-06T14:00:00.000Z"),
+      change("notes", "2026-10-06T15:00:00.000Z"),
+    ]);
+    expect((await repos.changeHistory.listForEntity("trade", entityId)).map((c) => c.field)).toEqual([
+      "notes",
+      "fees",
+    ]);
+  });
+});
+
+describe("transaction", () => {
+  it("rolls back every write when the work fails", async () => {
+    const trade = makeTrade();
+    await expect(
+      repos.transaction(async () => {
+        await repos.trades.save(trade);
+        await repos.tradeEvents.save(event({ tradeId: trade.id }));
+        throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
+    expect(await repos.trades.get(trade.id)).toBeUndefined();
+    expect(await repos.tradeEvents.listForTrade(trade.id)).toEqual([]);
   });
 });
