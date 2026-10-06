@@ -107,7 +107,8 @@ export function isLocked(trade: Trade): boolean {
   return trade.status === "CLOSED" && !trade.unlocked;
 }
 
-function change(trade: Trade, field: string, oldValue: unknown, newValue: unknown, now: string): ChangeHistory {
+/** @internal Shared with sibling services (screenshots). */
+export function change(trade: Trade, field: string, oldValue: unknown, newValue: unknown, now: string): ChangeHistory {
   return {
     id: newId(),
     createdAt: now,
@@ -137,7 +138,8 @@ async function loadTrade(repos: JournalRepositories, id: EntityId): Promise<Trad
   return trade;
 }
 
-async function loadActiveTrade(repos: JournalRepositories, id: EntityId): Promise<Trade> {
+/** @internal */
+export async function loadActiveTrade(repos: JournalRepositories, id: EntityId): Promise<Trade> {
   const trade = await loadTrade(repos, id);
   if (trade.deletedAt !== null) {
     throw new TradeServiceError("This trade is in the trash. Restore it to edit.", "IN_TRASH");
@@ -168,7 +170,11 @@ function assertFillsValid(trade: Trade, events: readonly TradeEvent[]): void {
 async function readinessFor(
   repos: JournalRepositories,
   trade: Trade,
-  overrides: { events?: readonly TradeEvent[]; psychology?: readonly PsychologyEntry[] } = {},
+  overrides: {
+    events?: readonly TradeEvent[];
+    psychology?: readonly PsychologyEntry[];
+    screenshotCount?: number;
+  } = {},
 ): Promise<CloseReadiness> {
   const [events, psychology, screenshots, settings] = await Promise.all([
     overrides.events ?? repos.tradeEvents.listForTrade(trade.id),
@@ -180,13 +186,13 @@ async function readinessFor(
     trade,
     events,
     psychology,
-    screenshotCount: screenshots.length,
+    screenshotCount: overrides.screenshotCount ?? screenshots.length,
     requiredFields: settings.requiredFields,
   });
 }
 
-/** A closed trade must remain complete after any edit (spec §6). */
-async function assertStillComplete(
+/** @internal A closed trade must remain complete after any edit (spec §6). */
+export async function assertStillComplete(
   repos: JournalRepositories,
   trade: Trade,
   overrides?: Parameters<typeof readinessFor>[2],
