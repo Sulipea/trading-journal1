@@ -72,6 +72,7 @@ export const LOCKED_FIELDS = [
   "finalStop",
   "finalTarget",
   "fees",
+  "netPnlOverride",
   "openedAt",
 ] as const satisfies readonly (keyof Trade)[];
 
@@ -290,6 +291,7 @@ export async function createQuickTrade(
     finalStop: null,
     finalTarget: null,
     fees: 0,
+    netPnlOverride: null,
     executionNotes: "",
     executionRating: null,
     notes: "",

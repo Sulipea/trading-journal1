@@ -79,3 +79,21 @@ describe("buildDashboardSummary", () => {
     expect(s.performance.winRate).toBeNull();
   });
 });
+
+describe("manual net P&L", () => {
+  it("replaces the calculated P&L everywhere, keeping the calculated value visible", async () => {
+    const { closedTradeResult } = await import("./dashboard");
+    const { computeTradeMetrics } = await import("./trade-metrics");
+    const t = trade({ root: "ES", symbol: "ESZ6", netPnlOverride: -112.5 });
+    const events = fills(t.id, 5000, 5001); // +1 point on ES = +$50 calculated
+
+    expect(closedTradeResult(t, events)?.netPnl).toBe(-112.5);
+    const metrics = computeTradeMetrics(t, events);
+    expect(metrics.fills?.netPnl).toBe(-112.5);
+    expect(metrics.calculatedNetPnl).toBe(50);
+
+    const calculated = { ...t, netPnlOverride: null };
+    expect(closedTradeResult(calculated, events)?.netPnl).toBe(50);
+    expect(computeTradeMetrics(calculated, events).fills?.netPnl).toBe(50);
+  });
+});

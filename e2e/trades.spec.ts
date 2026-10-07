@@ -43,14 +43,37 @@ test("quick entry → exit → close validation → close → lock", async ({ pa
 
   await page.getByRole("button", { name: "Close trade" }).click();
   await expect(page.getByText("Trade closed.")).toBeVisible();
-  await expect(page.getByText("+$1,000.00")).toBeVisible();
-  await expect(page.getByText("+2.00R")).toBeVisible();
+  await expect(page.getByText("+$1,000.00", { exact: true })).toBeVisible();
+  await expect(page.getByText("+2.00R", { exact: true })).toBeVisible();
   await expect(page.getByText("These fields are locked")).toBeVisible();
 
   // Unlocking makes locked fields editable again.
   await page.getByRole("button", { name: "Unlock" }).click();
   await expect(page.getByText("These fields are locked")).toBeHidden();
   await expect(risk.getByLabel("Fees & commissions (USD)")).toBeEnabled();
+});
+
+test("a manually entered net P&L replaces the calculated one", async ({ page }) => {
+  await requireOnlyPlannedStop(page);
+  await openQuickTrade(page);
+  const timeline = page.locator("section", { hasText: "Timeline" });
+  await timeline.getByLabel("Price").fill("5010");
+  await timeline.getByRole("button", { name: "Add fill" }).click();
+
+  // Wait for the position to show as flat, so the form isn't refreshed while typing.
+  await expect(page.getByText("Position is flat. Before closing, complete: Planned stop.")).toBeVisible();
+  const risk = page.locator("details", { hasText: "Planned vs actual" });
+  await expect(risk.getByText("(+$1,000.00)")).toBeVisible();
+  await risk.getByLabel("Planned stop").fill("4995");
+  await risk.getByLabel("Net P&L entered manually (USD)").fill("-250.5");
+  await risk.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Ready to close.")).toBeVisible();
+  await page.getByRole("button", { name: "Close trade" }).click();
+  await expect(page.getByText("Trade closed.")).toBeVisible();
+  await expect(risk.getByText("-$250.50 (manual)")).toBeVisible();
+
+  await page.goto("/trades");
+  await expect(page.getByText("-$250.50")).toBeVisible();
 });
 
 test("trash, restore and permanent delete", async ({ page }) => {

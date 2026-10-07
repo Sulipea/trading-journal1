@@ -86,6 +86,12 @@ export const tradeSchema = z.object({
   finalTarget: price.nullable(),
   /** Total fees/commissions for the trade, in dollars. */
   fees: money.nonnegative(),
+  /**
+   * Net P&L entered by hand (e.g. from the broker statement). When set it is
+   * used instead of the P&L calculated from the fills; the calculated value
+   * stays visible next to it.
+   */
+  netPnlOverride: money.nullable(),
 
   // Execution
   executionNotes: z.string(),

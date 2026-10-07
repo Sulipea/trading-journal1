@@ -22,6 +22,8 @@ export interface TradeMetrics {
   plannedRisk: number | null;
   plannedRewardRisk: number | null;
   actualRisk: number | null;
+  /** P&L calculated from the fills, even when a manual override replaces it in `fills.netPnl`. */
+  calculatedNetPnl: number | null;
   /** Only once the position is flat. */
   rMultiple: number | null;
   /** First entry to final exit, once flat. Displayed only; not used in analytics. */
@@ -41,6 +43,10 @@ export function computeTradeMetrics(trade: Trade, events: readonly TradeEvent[])
     fillError = error.message;
   }
 
+  const calculatedNetPnl = fills?.netPnl ?? null;
+  // A manual net P&L applies once the trade is flat, and flows into R, quality and analytics.
+  if (fills?.isFlat && trade.netPnlOverride !== null) fills = { ...fills, netPnl: trade.netPnlOverride };
+
   let durationMs: number | null = null;
   if (fills?.isFlat) {
     const times = events.map((e) => Date.parse(e.timestamp));
@@ -53,6 +59,7 @@ export function computeTradeMetrics(trade: Trade, events: readonly TradeEvent[])
     plannedRisk: risk,
     plannedRewardRisk: plannedRewardRisk(trade.plannedEntry, trade.plannedStop, trade.plannedTarget),
     actualRisk: fills ? actualRisk(spec, fills, trade.finalStop ?? trade.plannedStop) : null,
+    calculatedNetPnl,
     rMultiple: fills?.isFlat ? rMultiple(fills.netPnl, risk) : null,
     durationMs,
   };

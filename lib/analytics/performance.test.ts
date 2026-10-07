@@ -76,6 +76,7 @@ describe("analytics performance", () => {
     const elapsed = performance.now() - started;
 
     expect(rows).toHaveLength(5_000);
-    expect(elapsed).toBeLessThan(1_000);
+    // ~0.4s alone; generous so it holds while the whole suite runs in parallel on a slow machine.
+    expect(elapsed).toBeLessThan(3_000);
   });
 });

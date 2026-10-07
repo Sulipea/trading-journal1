@@ -64,6 +64,7 @@ describe("schema migrations", () => {
       setupId: null,
       requirementOverrides: [],
       flaggedForReview: false,
+      netPnlOverride: null,
     });
 
     const settings = appSettingsSchema.parse(await db.appSettings.get(APP_SETTINGS_ID));

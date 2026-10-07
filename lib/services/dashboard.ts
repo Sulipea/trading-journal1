@@ -53,7 +53,7 @@ export function closedTradeResult(
   }
   const summary = summarizeFills(events, trade.direction, CONTRACT_SPECS[trade.root], trade.fees);
   if (!summary.isFlat) return null;
-  return { netPnl: summary.netPnl, closedAt: trade.closedAt };
+  return { netPnl: trade.netPnlOverride ?? summary.netPnl, closedAt: trade.closedAt };
 }
 
 export function buildDashboardSummary(input: DashboardInput): DashboardSummary {

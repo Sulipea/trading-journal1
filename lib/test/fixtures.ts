@@ -23,6 +23,7 @@ export function makeTrade(overrides: Partial<Trade> = {}): Trade {
     finalStop: null,
     finalTarget: null,
     fees: 0,
+    netPnlOverride: null,
     executionNotes: "",
     executionRating: null,
     notes: "",

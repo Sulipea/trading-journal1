@@ -157,6 +157,19 @@ export const MIGRATIONS: readonly Migration[] = [
         });
     },
   },
+  {
+    // Manual net P&L override on trades.
+    version: 9,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table("trades")
+        .toCollection()
+        .modify((trade: Record<string, unknown>) => {
+          trade.netPnlOverride ??= null;
+        });
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

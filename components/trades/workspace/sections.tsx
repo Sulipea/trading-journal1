@@ -191,6 +191,7 @@ function RiskSection() {
               finalStop: formNumber(form, "finalStop"),
               finalTarget: formNumber(form, "finalTarget"),
               fees: blankToZero(formNumber(form, "fees")),
+              netPnlOverride: formNumber(form, "netPnlOverride"),
               openedAt: form.has("openedAt")
                 ? (fromDateTimeLocal(String(form.get("openedAt"))) ?? undefined)
                 : undefined,
@@ -245,6 +246,25 @@ function RiskSection() {
               <Input id="fees" name="fees" type="number" min={0} step={0.01} defaultValue={trade.fees} />
             </Field>
           </div>
+          <Field
+            label="Net P&L entered manually (USD)"
+            htmlFor="netPnlOverride"
+            hint={
+              <>
+                Optional — e.g. from your broker. Use a minus sign for a loss. Leave empty to use the calculated value
+                {metrics.calculatedNetPnl !== null && <> ({formatMoney(metrics.calculatedNetPnl, { signed: true })})</>}.
+              </>
+            }
+            className="max-w-sm"
+          >
+            <Input
+              id="netPnlOverride"
+              name="netPnlOverride"
+              type="number"
+              step={0.01}
+              defaultValue={trade.netPnlOverride ?? ""}
+            />
+          </Field>
         </fieldset>
       </SectionForm>
 
@@ -264,6 +284,13 @@ function RiskSection() {
             <Row label="Entry" planned={formatPrice(trade.plannedEntry)} actual={formatPrice(fills?.averageEntry ?? null)} />
             <Row label="Exit" planned={formatPrice(trade.plannedTarget)} actual={formatPrice(fills?.averageExit ?? null)} />
             <Row label="Fees" planned="—" actual={formatMoney(trade.fees)} />
+            {trade.netPnlOverride !== null && (
+              <Row
+                label="Net P&L"
+                planned={`calc. ${money(metrics.calculatedNetPnl)}`}
+                actual={`${formatMoney(trade.netPnlOverride, { signed: true })} (manual)`}
+              />
+            )}
           </tbody>
         </table>
         <p className="mt-2 text-xs text-muted">
