@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/card";
-import { Button, Field, FormStatus, Input } from "@/components/ui/form";
+import { Button, Field, FormStatus, Input, Select } from "@/components/ui/form";
 import { formatMoney, fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
 import { CONTRACT_SPECS, parseContractSymbol, tickValue } from "@/lib/domain/instruments";
-import type { Direction } from "@/lib/domain/types";
+import { VIX_DIRECTION_LABELS } from "@/lib/domain/defaults";
+import type { Direction, VixDirection } from "@/lib/domain/types";
 import { newTradeReminders } from "@/lib/domain/reminders";
 import { getRepositories, type JournalRepositories } from "@/lib/repositories";
 import { createQuickTrade } from "@/lib/services/trades";
@@ -18,6 +19,7 @@ export function QuickEntryForm() {
   const router = useRouter();
   const [symbol, setSymbol] = useState("");
   const [direction, setDirection] = useState<Direction>("LONG");
+  const [newsDay, setNewsDay] = useState<"" | "yes" | "no">("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [defaultTime] = useState(() => toDateTimeLocal(new Date().toISOString()));
@@ -47,6 +49,10 @@ export function QuickEntryForm() {
         entryPrice: Number(form.get("entryPrice")),
         contracts: Number(form.get("contracts")),
         timestamp,
+        newsDay: newsDay === "" ? null : newsDay === "yes",
+        newsEvent: String(form.get("newsEvent") ?? ""),
+        vixLevel: String(form.get("vixLevel") ?? "").trim() === "" ? null : Number(form.get("vixLevel")),
+        vixDirection: (String(form.get("vixDirection") ?? "") || null) as VixDirection | null,
       });
       router.push(`/trades/${trade.id}`);
     } catch (err) {
@@ -143,6 +149,41 @@ export function QuickEntryForm() {
         <Field label="Entry time" htmlFor="time" hint="Your computer's local time.">
           <Input id="time" name="time" type="datetime-local" step={1} required defaultValue={defaultTime} />
         </Field>
+
+        <fieldset className="space-y-4">
+          <legend className="mb-1.5 text-sm font-medium">
+            Market context <span className="font-normal text-muted">(optional)</span>
+          </legend>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="News day" htmlFor="newsDay">
+              <Select id="newsDay" value={newsDay} onChange={(e) => setNewsDay(e.target.value as "" | "yes" | "no")}>
+                <option value="">—</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </Select>
+            </Field>
+            {newsDay === "yes" && (
+              <Field label="News event" htmlFor="newsEvent" hint="e.g. CPI, FOMC, NFP">
+                <Input id="newsEvent" name="newsEvent" maxLength={60} autoComplete="off" />
+              </Field>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="VIX at entry" htmlFor="vixLevel">
+              <Input id="vixLevel" name="vixLevel" type="number" min={0} step={0.01} inputMode="decimal" />
+            </Field>
+            <Field label="VIX direction" htmlFor="vixDirection">
+              <Select id="vixDirection" name="vixDirection" defaultValue="">
+                <option value="">—</option>
+                {(Object.keys(VIX_DIRECTION_LABELS) as VixDirection[]).map((v) => (
+                  <option key={v} value={v}>
+                    {VIX_DIRECTION_LABELS[v]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </fieldset>
 
         <div className="flex items-center gap-4 pt-2">
           <Button type="submit" variant="primary" disabled={busy || !parsed}>

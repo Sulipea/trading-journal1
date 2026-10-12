@@ -67,6 +67,8 @@ const PATTERN_SECTION: Record<Pattern["dimension"], ReviewSection> = {
   hour: "CONDITIONS",
   weekday: "CONDITIONS",
   condition: "CONDITIONS",
+  newsDay: "CONDITIONS",
+  vixDirection: "CONDITIONS",
 };
 
 function money(v: number | null): string {

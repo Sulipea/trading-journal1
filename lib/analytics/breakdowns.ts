@@ -3,7 +3,8 @@
  * Pure.
  */
 import { CONTRACT_SPECS } from "@/lib/domain/instruments";
-import type { EntityId } from "@/lib/domain/types";
+import { VIX_DIRECTION_LABELS } from "@/lib/domain/defaults";
+import type { EntityId, VixDirection } from "@/lib/domain/types";
 import { WEEKDAY_LABELS, type AnalyticsRow } from "./dataset";
 import { groupStats, type GroupStats } from "./stats";
 
@@ -18,7 +19,9 @@ export type Dimension =
   | "ruleAdherence"
   | "quality"
   | "condition"
-  | "forecastAdherence";
+  | "forecastAdherence"
+  | "newsDay"
+  | "vixDirection";
 
 export const DIMENSION_LABELS: Record<Dimension, string> = {
   setup: "Setup",
@@ -32,6 +35,8 @@ export const DIMENSION_LABELS: Record<Dimension, string> = {
   quality: "Trade quality",
   condition: "Market conditions",
   forecastAdherence: "Forecast adherence",
+  newsDay: "News day",
+  vixDirection: "VIX direction",
 };
 
 export interface BreakdownGroup {
@@ -63,6 +68,8 @@ const FORECAST_LABELS: Record<AnalyticsRow["forecastAdherence"], string> = {
   UNLINKED: "Not linked",
 };
 
+const VIX_DIRECTION_ORDER: readonly VixDirection[] = ["SUPPORTING", "NEUTRAL", "AGAINST"];
+
 /** The group(s) a row belongs to. Multi-valued dimensions (emotion, condition) can return several. */
 function keysFor(row: AnalyticsRow, dimension: Dimension): Key[] {
   const t = row.trade;
@@ -93,6 +100,22 @@ function keysFor(row: AnalyticsRow, dimension: Dimension): Key[] {
       ];
     case "condition":
       return row.conditionTags.map((c) => ({ key: c, label: c }));
+    case "newsDay":
+      return [
+        {
+          key: t.newsDay === null ? "none" : t.newsDay ? "YES" : "NO",
+          label: t.newsDay === null ? "Not recorded" : t.newsDay ? "News day" : "No news",
+          order: t.newsDay === null ? 2 : t.newsDay ? 0 : 1,
+        },
+      ];
+    case "vixDirection":
+      return [
+        {
+          key: t.vixDirection ?? "none",
+          label: t.vixDirection ? VIX_DIRECTION_LABELS[t.vixDirection] : "Not recorded",
+          order: t.vixDirection ? VIX_DIRECTION_ORDER.indexOf(t.vixDirection) : VIX_DIRECTION_ORDER.length,
+        },
+      ];
     case "forecastAdherence":
       return [
         {

@@ -5,8 +5,9 @@ import { useState, type ReactNode } from "react";
 import { Button, Input, Select } from "@/components/ui/form";
 import { WEEKDAY_LABELS } from "@/lib/analytics/dataset";
 import { DEFAULT_FILTER, NO_SETUP, activeFilterCount, type AnalyticsFilter, type Grade, type TimeRange } from "@/lib/analytics/filters";
+import { VIX_DIRECTION_LABELS } from "@/lib/domain/defaults";
 import { INSTRUMENT_ROOTS } from "@/lib/domain/instruments";
-import type { SessionOption, Setup } from "@/lib/domain/types";
+import type { SessionOption, Setup, VixDirection } from "@/lib/domain/types";
 import { cn } from "@/lib/ui/cn";
 
 const RANGES: { value: TimeRange; label: string }[] = [
@@ -18,6 +19,7 @@ const RANGES: { value: TimeRange; label: string }[] = [
   { value: "CUSTOM", label: "Custom" },
 ];
 const GRADES: Grade[] = ["A", "B", "C", "D", "F"];
+const VIX_DIRECTIONS = Object.keys(VIX_DIRECTION_LABELS) as VixDirection[];
 
 function toggle<T>(list: readonly T[], item: T): T[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
@@ -154,6 +156,24 @@ export function FilterBar({
             {WEEKDAY_LABELS.map((label, i) => (
               <Chip key={label} pressed={filter.weekdays.includes(i)} onClick={() => set({ weekdays: toggle(filter.weekdays, i) })}>
                 {label.slice(0, 3)}
+              </Chip>
+            ))}
+          </Group>
+          <Group label="News day">
+            {(["ALL", "YES", "NO"] as const).map((n) => (
+              <Chip key={n} pressed={filter.newsDay === n} onClick={() => set({ newsDay: n })}>
+                {n === "ALL" ? "Any" : n === "YES" ? "News day" : "No news"}
+              </Chip>
+            ))}
+          </Group>
+          <Group label="VIX direction">
+            {VIX_DIRECTIONS.map((v) => (
+              <Chip
+                key={v}
+                pressed={filter.vixDirections.includes(v)}
+                onClick={() => set({ vixDirections: toggle(filter.vixDirections, v) })}
+              >
+                {VIX_DIRECTION_LABELS[v]}
               </Chip>
             ))}
           </Group>

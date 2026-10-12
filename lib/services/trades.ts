@@ -27,6 +27,7 @@ import type {
   TradeEventType,
   TradeScreenshot,
   TrashItem,
+  VixDirection,
 } from "@/lib/domain/types";
 import type { JournalRepositories } from "@/lib/repositories/types";
 import { applicableRules } from "@/lib/domain/checklist";
@@ -73,6 +74,7 @@ export const LOCKED_FIELDS = [
   "finalTarget",
   "fees",
   "netPnlOverride",
+  "rMultipleOverride",
   "openedAt",
 ] as const satisfies readonly (keyof Trade)[];
 
@@ -81,6 +83,10 @@ export type EditableTradeFields = Pick<
   | (typeof LOCKED_FIELDS)[number]
   | "session"
   | "marketConditions"
+  | "newsDay"
+  | "newsEvent"
+  | "vixLevel"
+  | "vixDirection"
   | "reasoning"
   | "executionNotes"
   | "executionRating"
@@ -95,6 +101,11 @@ export interface QuickTradeInput {
   contracts: number;
   /** When the entry was filled. */
   timestamp: string;
+  /** Optional market context at entry. */
+  newsDay?: boolean | null;
+  newsEvent?: string;
+  vixLevel?: number | null;
+  vixDirection?: VixDirection | null;
 }
 
 export interface FillInput {
@@ -283,6 +294,10 @@ export async function createQuickTrade(
     direction: input.direction,
     session: null,
     marketConditions: "",
+    newsDay: input.newsDay ?? null,
+    newsEvent: input.newsDay === true ? (input.newsEvent ?? "").trim() : "",
+    vixLevel: input.vixLevel ?? null,
+    vixDirection: input.vixDirection ?? null,
     reasoning: "",
     plannedEntry: input.entryPrice,
     plannedStop: null,
@@ -292,6 +307,7 @@ export async function createQuickTrade(
     finalTarget: null,
     fees: 0,
     netPnlOverride: null,
+    rMultipleOverride: null,
     executionNotes: "",
     executionRating: null,
     notes: "",
@@ -401,6 +417,9 @@ export async function updateTrade(
   patch: TradePatch,
   now: string = nowIso(),
 ): Promise<Trade> {
+  // An event name only makes sense on a news day.
+  if (patch.newsDay !== undefined && patch.newsDay !== true) patch = { ...patch, newsEvent: "" };
+  if (patch.newsEvent !== undefined) patch = { ...patch, newsEvent: patch.newsEvent.trim() };
   return repos.transaction(async () => {
     const trade = await loadActiveTrade(repos, tradeId);
 

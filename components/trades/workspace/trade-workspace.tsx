@@ -197,7 +197,7 @@ function WorkspaceHeader() {
         <Stat label={trade.status === "CLOSED" ? "Net P&L" : "Realized P&L"}>
           <SignedValue value={net}>{net === null ? "—" : formatMoney(net, { signed: true })}</SignedValue>
         </Stat>
-        <Stat label="R multiple">
+        <Stat label={trade.rMultipleOverride !== null && metrics.rMultiple !== null ? "R multiple (manual)" : "R multiple"}>
           <SignedValue value={metrics.rMultiple}>{formatR(metrics.rMultiple)}</SignedValue>
         </Stat>
         <Stat label="Planned risk (1R)">{metrics.plannedRisk === null ? "—" : formatMoney(metrics.plannedRisk)}</Stat>

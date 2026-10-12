@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button, buttonClass } from "@/components/ui/form";
+import { VIX_DIRECTION_LABELS } from "@/lib/domain/defaults";
 import { formatDateTime, formatMoney, formatPrice, formatR } from "@/lib/format";
 import type { JournalRepositories } from "@/lib/repositories";
 import { listTradeRows } from "@/lib/services/trades";
@@ -91,6 +92,8 @@ export function TradeList() {
                 <th scope="col" className="px-4 py-3 font-medium">Contract</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
                 <th scope="col" className="px-4 py-3 font-medium">Setup</th>
+                <th scope="col" className="px-4 py-3 font-medium">News</th>
+                <th scope="col" className="px-4 py-3 font-medium">VIX</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Avg entry</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Net P&amp;L</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">R</th>
@@ -121,6 +124,19 @@ export function TradeList() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted">{setupName ?? "—"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-muted">
+                      {trade.newsDay === null ? "—" : trade.newsDay ? trade.newsEvent || "Yes" : "No"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-muted">
+                      {trade.vixLevel === null && trade.vixDirection === null
+                        ? "—"
+                        : [
+                            trade.vixLevel === null ? null : trade.vixLevel.toFixed(2),
+                            trade.vixDirection ? VIX_DIRECTION_LABELS[trade.vixDirection] : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </td>
                     <td className="px-4 py-3 text-right font-mono tabular-nums">
                       {formatPrice(metrics.fills?.averageEntry ?? null)}
                     </td>
@@ -129,6 +145,11 @@ export function TradeList() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <SignedValue value={metrics.rMultiple}>{formatR(metrics.rMultiple)}</SignedValue>
+                      {trade.rMultipleOverride !== null && metrics.rMultiple !== null && (
+                        <span className="ml-1 text-xs text-muted" title="Entered manually">
+                          (manual)
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <QualityBadge quality={quality} />

@@ -65,6 +65,11 @@ describe("schema migrations", () => {
       requirementOverrides: [],
       flaggedForReview: false,
       netPnlOverride: null,
+      newsDay: null,
+      newsEvent: "",
+      vixLevel: null,
+      vixDirection: null,
+      rMultipleOverride: null,
     });
 
     const settings = appSettingsSchema.parse(await db.appSettings.get(APP_SETTINGS_ID));

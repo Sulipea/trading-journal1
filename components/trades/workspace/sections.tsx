@@ -3,9 +3,9 @@
 import { Lock } from "lucide-react";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { CONTRACT_SPECS } from "@/lib/domain/instruments";
-import { PSYCHOLOGY_PHASE_LABELS } from "@/lib/domain/defaults";
-import type { Direction, PsychologyPhase, RequirableField, Session } from "@/lib/domain/types";
-import { formatMoney, formatPrice, fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
+import { PSYCHOLOGY_PHASE_LABELS, VIX_DIRECTION_LABELS } from "@/lib/domain/defaults";
+import type { Direction, PsychologyPhase, RequirableField, Session, VixDirection } from "@/lib/domain/types";
+import { formatMoney, formatPrice, formatR, fromDateTimeLocal, toDateTimeLocal } from "@/lib/format";
 import { getRepositories } from "@/lib/repositories";
 import { savePsychology, updateTrade, type TradePatch } from "@/lib/services/trades";
 import { cn } from "@/lib/ui/cn";
@@ -49,6 +49,10 @@ function MarketDataSection() {
             {
               session: (String(form.get("session")) || null) as Session | null,
               marketConditions: formText(form, "marketConditions"),
+              newsDay: formYesNo(form, "newsDay"),
+              newsEvent: formText(form, "newsEvent"),
+              vixLevel: formNumber(form, "vixLevel"),
+              vixDirection: (String(form.get("vixDirection") ?? "") || null) as VixDirection | null,
             },
             trade.id,
           )
@@ -86,6 +90,39 @@ function MarketDataSection() {
           >
             <Textarea id="marketConditions" name="marketConditions" rows={3} defaultValue={trade.marketConditions} />
           </Field>
+          <Field label="News day" htmlFor="newsDay">
+            <Select id="newsDay" name="newsDay" defaultValue={yesNoValue(trade.newsDay)}>
+              <option value="">—</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Select>
+          </Field>
+          <Field label="News event" htmlFor="newsEvent" hint="Only kept on news days, e.g. CPI, FOMC, NFP.">
+            <Input id="newsEvent" name="newsEvent" maxLength={60} defaultValue={trade.newsEvent} />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="VIX at entry" htmlFor="vixLevel">
+              <Input
+                id="vixLevel"
+                name="vixLevel"
+                type="number"
+                min={0}
+                step={0.01}
+                inputMode="decimal"
+                defaultValue={trade.vixLevel ?? ""}
+              />
+            </Field>
+            <Field label="VIX direction" htmlFor="vixDirection" hint="For or against the trade.">
+              <Select id="vixDirection" name="vixDirection" defaultValue={trade.vixDirection ?? ""}>
+                <option value="">—</option>
+                {(Object.keys(VIX_DIRECTION_LABELS) as VixDirection[]).map((v) => (
+                  <option key={v} value={v}>
+                    {VIX_DIRECTION_LABELS[v]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
         </fieldset>
       </SectionForm>
     </Section>
@@ -192,6 +229,7 @@ function RiskSection() {
               finalTarget: formNumber(form, "finalTarget"),
               fees: blankToZero(formNumber(form, "fees")),
               netPnlOverride: formNumber(form, "netPnlOverride"),
+              rMultipleOverride: formNumber(form, "rMultipleOverride"),
               openedAt: form.has("openedAt")
                 ? (fromDateTimeLocal(String(form.get("openedAt"))) ?? undefined)
                 : undefined,
@@ -246,6 +284,7 @@ function RiskSection() {
               <Input id="fees" name="fees" type="number" min={0} step={0.01} defaultValue={trade.fees} />
             </Field>
           </div>
+          <div className="grid gap-4 md:grid-cols-2">
           <Field
             label="Net P&L entered manually (USD)"
             htmlFor="netPnlOverride"
@@ -265,6 +304,25 @@ function RiskSection() {
               defaultValue={trade.netPnlOverride ?? ""}
             />
           </Field>
+          <Field
+            label="Result in R entered manually"
+            htmlFor="rMultipleOverride"
+            hint={
+              <>
+                Optional, e.g. 2 or -1. Leave empty to use net P&amp;L ÷ planned risk
+                {metrics.calculatedRMultiple !== null && <> ({formatR(metrics.calculatedRMultiple)})</>}.
+              </>
+            }
+          >
+            <Input
+              id="rMultipleOverride"
+              name="rMultipleOverride"
+              type="number"
+              step={0.01}
+              defaultValue={trade.rMultipleOverride ?? ""}
+            />
+          </Field>
+          </div>
         </fieldset>
       </SectionForm>
 
@@ -284,6 +342,13 @@ function RiskSection() {
             <Row label="Entry" planned={formatPrice(trade.plannedEntry)} actual={formatPrice(fills?.averageEntry ?? null)} />
             <Row label="Exit" planned={formatPrice(trade.plannedTarget)} actual={formatPrice(fills?.averageExit ?? null)} />
             <Row label="Fees" planned="—" actual={formatMoney(trade.fees)} />
+            {trade.rMultipleOverride !== null && (
+              <Row
+                label="Result (R)"
+                planned={`calc. ${formatR(metrics.calculatedRMultiple)}`}
+                actual={`${formatR(trade.rMultipleOverride)} (manual)`}
+              />
+            )}
             {trade.netPnlOverride !== null && (
               <Row
                 label="Net P&L"
@@ -300,6 +365,17 @@ function RiskSection() {
       </div>
     </Section>
   );
+}
+
+function yesNoValue(value: boolean | null): "" | "yes" | "no" {
+  return value === null ? "" : value ? "yes" : "no";
+}
+
+/** "yes" / "no" / "" (not recorded) from a select; undefined when the field isn't in the form. */
+function formYesNo(form: FormData, name: string): boolean | null | undefined {
+  if (!form.has(name)) return undefined;
+  const raw = String(form.get(name));
+  return raw === "" ? null : raw === "yes";
 }
 
 function blankToZero(value: number | null | undefined): number | undefined {

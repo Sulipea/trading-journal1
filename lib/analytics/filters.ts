@@ -1,5 +1,5 @@
 /** Analytics filters and time ranges (spec §18). Pure. */
-import type { Direction, EntityId, InstrumentRoot } from "@/lib/domain/types";
+import type { Direction, EntityId, InstrumentRoot, VixDirection } from "@/lib/domain/types";
 import type { TradeQuality } from "@/lib/calculations/quality";
 import type { AnalyticsRow } from "./dataset";
 
@@ -25,6 +25,10 @@ export interface AnalyticsFilter {
   emotions: string[];
   ruleAdherence: "ALL" | "CLEAN" | "VIOLATED";
   grades: Grade[];
+  /** YES/NO match trades where it was recorded. */
+  newsDay: "ALL" | "YES" | "NO";
+  /** Empty = any. */
+  vixDirections: VixDirection[];
 }
 
 export const DEFAULT_FILTER: AnalyticsFilter = {
@@ -39,6 +43,8 @@ export const DEFAULT_FILTER: AnalyticsFilter = {
   emotions: [],
   ruleAdherence: "ALL",
   grades: [],
+  newsDay: "ALL",
+  vixDirections: [],
 };
 
 function shiftDay(day: string, days: number): string {
@@ -83,6 +89,10 @@ export function applyFilter(rows: readonly AnalyticsRow[], filter: AnalyticsFilt
     if (filter.emotions.length && !r.emotions.some((e) => filter.emotions.includes(e))) return false;
     if (filter.ruleAdherence !== "ALL" && r.ruleAdherence !== filter.ruleAdherence) return false;
     if (filter.grades.length && (r.quality.grade === null || !filter.grades.includes(r.quality.grade))) return false;
+    if (filter.newsDay !== "ALL" && r.trade.newsDay !== (filter.newsDay === "YES")) return false;
+    if (filter.vixDirections.length && (r.trade.vixDirection === null || !filter.vixDirections.includes(r.trade.vixDirection))) {
+      return false;
+    }
     return true;
   });
 }
@@ -97,6 +107,8 @@ export function activeFilterCount(filter: AnalyticsFilter): number {
     (filter.weekdays.length ? 1 : 0) +
     (filter.emotions.length ? 1 : 0) +
     (filter.ruleAdherence !== "ALL" ? 1 : 0) +
-    (filter.grades.length ? 1 : 0)
+    (filter.grades.length ? 1 : 0) +
+    (filter.newsDay !== "ALL" ? 1 : 0) +
+    (filter.vixDirections.length ? 1 : 0)
   );
 }

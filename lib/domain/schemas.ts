@@ -23,6 +23,8 @@ const entityBase = {
 };
 
 export const directionSchema = z.enum(["LONG", "SHORT"]);
+/** Whether VIX was moving in favor of the trade at entry. */
+export const vixDirectionSchema = z.enum(["SUPPORTING", "NEUTRAL", "AGAINST"]);
 export const instrumentRootSchema = z.enum(INSTRUMENT_ROOTS);
 
 /** Trade lifecycle (spec §6): OPEN -> UPDATED -> CLOSED. */
@@ -73,6 +75,13 @@ export const tradeSchema = z.object({
   // Market data
   session: sessionSchema.nullable(),
   marketConditions: z.string(),
+  /** Scheduled news on the trade's day; null = not recorded. */
+  newsDay: z.boolean().nullable(),
+  /** Short event name, e.g. CPI, FOMC, NFP. Empty unless it's a news day. */
+  newsEvent: z.string().trim().max(60),
+  /** VIX at the time of entry. */
+  vixLevel: z.number().finite().nonnegative().nullable(),
+  vixDirection: vixDirectionSchema.nullable(),
 
   // Trade reasoning
   reasoning: z.string(),
@@ -92,6 +101,11 @@ export const tradeSchema = z.object({
    * stays visible next to it.
    */
   netPnlOverride: money.nullable(),
+  /**
+   * Result in R entered by hand. When set it is used instead of
+   * net P&L ÷ planned risk; the calculated value stays visible next to it.
+   */
+  rMultipleOverride: z.number().finite().nullable(),
 
   // Execution
   executionNotes: z.string(),

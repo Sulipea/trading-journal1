@@ -21,6 +21,7 @@ import type {
   forecastTradeLinkSchema,
   findingKindSchema,
   gexRegimeSchema,
+  vixDirectionSchema,
   levelInteractionSchema,
   levelPrioritySchema,
   levelReactionSchema,
@@ -96,6 +97,7 @@ export type RuleCheck = z.infer<typeof ruleCheckSchema>;
 export type Bias = z.infer<typeof biasSchema>;
 export type Confidence = z.infer<typeof confidenceSchema>;
 export type GexRegime = z.infer<typeof gexRegimeSchema>;
+export type VixDirection = z.infer<typeof vixDirectionSchema>;
 export type LevelType = z.infer<typeof levelTypeSchema>;
 export type LevelPriority = z.infer<typeof levelPrioritySchema>;
 export type LevelReaction = z.infer<typeof levelReactionSchema>;

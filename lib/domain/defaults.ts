@@ -1,4 +1,12 @@
-import type { BackupSettings, ForecastDefaults, PsychologyPhase, Reminder, RequirableField, SessionOption } from "./types";
+import type {
+  BackupSettings,
+  ForecastDefaults,
+  PsychologyPhase,
+  Reminder,
+  RequirableField,
+  SessionOption,
+  VixDirection,
+} from "./types";
 
 /** Starting sessions; editable in Settings. Ids are stable and never reused. */
 export const DEFAULT_SESSIONS: readonly SessionOption[] = [
@@ -13,6 +21,19 @@ export const DEFAULT_SESSIONS: readonly SessionOption[] = [
 export function sessionLabel(id: string | null, sessions: readonly SessionOption[]): string {
   if (id === null) return "—";
   return sessions.find((s) => s.id === id)?.label ?? id;
+}
+
+export const VIX_DIRECTION_LABELS: Readonly<Record<VixDirection, string>> = {
+  SUPPORTING: "Supporting",
+  NEUTRAL: "Neutral",
+  AGAINST: "Against",
+};
+
+/** "News day: CPI", "No news" or "Not recorded". */
+export function newsDayLabel(newsDay: boolean | null, newsEvent = ""): string {
+  if (newsDay === null) return "Not recorded";
+  if (!newsDay) return "No news";
+  return newsEvent ? `News day: ${newsEvent}` : "News day";
 }
 
 export const PSYCHOLOGY_PHASE_LABELS: Readonly<Record<PsychologyPhase, string>> = {

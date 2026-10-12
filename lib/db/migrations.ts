@@ -170,6 +170,23 @@ export const MIGRATIONS: readonly Migration[] = [
         });
     },
   },
+  {
+    // Trade context: news day, VIX level/direction, and a manual R override.
+    version: 10,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table("trades")
+        .toCollection()
+        .modify((trade: Record<string, unknown>) => {
+          trade.newsDay ??= null;
+          trade.newsEvent ??= "";
+          trade.vixLevel ??= null;
+          trade.vixDirection ??= null;
+          trade.rMultipleOverride ??= null;
+        });
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
