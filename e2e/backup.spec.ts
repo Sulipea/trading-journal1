@@ -89,3 +89,39 @@ test("new forecasts start from the forecast defaults", async ({ page }) => {
   await page.getByRole("button", { name: "Create today's forecast" }).click();
   await expect(page.getByLabel("Confidence", { exact: true })).toHaveValue("HIGH");
 });
+
+test("a backup exported with screenshots restores, images included", async ({ page }, testInfo) => {
+  await openTrade(page, "MNQZ6", "20000");
+  const png = await page.evaluate(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 200;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#123456";
+    ctx.fillRect(0, 0, 400, 200);
+    const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), "image/png"));
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  await page.getByText("Screenshots / chart analysis").click();
+  await page.getByLabel("Add screenshots").setInputFiles({ name: "chart.png", mimeType: "image/png", buffer: Buffer.from(png) });
+  await expect(page.getByText("1 screenshot added.")).toBeVisible();
+  const tradeUrl = page.url();
+
+  await page.goto("/settings");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export with screenshots" }).click();
+  const backupPath = testInfo.outputPath("journal-with-screenshots.tjbackup");
+  await (await downloadPromise).saveAs(backupPath);
+
+  await page.getByLabel("Backup file to restore").setInputFiles(backupPath);
+  const dialog = page.getByRole("dialog", { name: "Replace your journal with this backup?" });
+  await expect(dialog).toContainText("1 trades");
+  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Restore backup" }).click()]);
+
+  await page.goto(tradeUrl);
+  await page.getByText("Screenshots / chart analysis").click();
+  await page.getByRole("button", { name: "chart.png" }).click();
+  const image = page.getByRole("dialog", { name: /Screenshot/ }).getByRole("img", { name: "Trade screenshot" });
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(400);
+});
