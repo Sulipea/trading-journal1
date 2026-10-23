@@ -14,6 +14,8 @@ const clean: QualityInput = {
     { severity: "LOW", status: "FOLLOWED" },
   ],
   overrideCount: 0,
+  autoViolations: [],
+  stopAtEntry: null,
   executionRating: 5,
   plannedStop: 4995,
   plannedRisk: 250,
@@ -55,8 +57,19 @@ describe("execution and risk", () => {
     expect(riskScore(clean)).toBe(100);
     expect(riskScore({ ...clean, plannedStop: null })).toBe(0);
     expect(riskScore({ ...clean, maxOpenQuantity: 2, actualRisk: 500 })).toBe(40);
-    expect(riskScore({ ...clean, rMultiple: -2 })).toBe(60);
     expect(riskScore({ ...clean, maxOpenQuantity: null })).toBeNull();
+  });
+
+  it("caps the risk score by how far the loss went past planned risk", () => {
+    expect(riskScore({ ...clean, rMultiple: -1.1 })).toBe(90);
+    expect(riskScore({ ...clean, rMultiple: -1.5 })).toBe(50);
+    expect(riskScore({ ...clean, rMultiple: -2.875 })).toBe(0);
+  });
+
+  it("takes points off when no stop was attached at entry", () => {
+    expect(riskScore({ ...clean, stopAtEntry: true })).toBe(100);
+    expect(riskScore({ ...clean, stopAtEntry: false })).toBe(50);
+    expect(riskScore({ ...clean, stopAtEntry: null })).toBe(100);
   });
 });
 
@@ -100,6 +113,53 @@ describe("computeTradeQuality", () => {
     });
     expect(q.score).toBeNull();
     expect(q.grade).toBeNull();
+  });
+});
+
+describe("data-derived violations", () => {
+  const unprotectedShort: QualityInput = {
+    ...clean,
+    checks: [{ severity: "HIGH", status: "FOLLOWED" }],
+    autoViolations: [
+      { kind: "NO_STOP_AT_ENTRY", severity: "HIGH", detail: "" },
+      { kind: "LOSS_BEYOND_PLANNED_RISK", severity: "HIGH", detail: "" },
+      { kind: "EXIT_BEYOND_STOP", severity: "HIGH", detail: "" },
+    ],
+    stopAtEntry: false,
+    executionRating: 2,
+    plannedRisk: 400,
+    actualRisk: 400,
+    plannedContracts: 2,
+    maxOpenQuantity: 2,
+    rMultiple: -2.875,
+    netPnl: -1150,
+  };
+
+  it("count against rule adherence even when every ticked rule was followed", () => {
+    expect(ruleAdherenceScore(unprotectedShort)).toBe(0);
+    expect(ruleAdherenceScore({ checks: [], overrideCount: 0, autoViolations: [{ kind: "ENTRY_OUTSIDE_ZONE", severity: "MEDIUM", detail: "" }] })).toBe(75);
+  });
+
+  it("make an unprotected loss far past plan poor process", () => {
+    const q = computeTradeQuality(unprotectedShort);
+    expect(q.components).toEqual({ rules: 0, execution: 25, risk: 0 });
+    expect(q.processOutcome).toBe("POOR_PROCESS_LOSS");
+    expect(q.autoViolations).toHaveLength(3);
+  });
+
+  it("make the process poor on any high-severity violation, whatever the overall score", () => {
+    const q = computeTradeQuality({
+      ...clean,
+      autoViolations: [{ kind: "NO_STOP_AT_ENTRY", severity: "HIGH", detail: "" }],
+      stopAtEntry: false,
+    });
+    expect(q.processOutcome).toBe("POOR_PROCESS_LOSS");
+  });
+
+  it("carry notes through without changing the score", () => {
+    const q = computeTradeQuality(clean, ["Discipline rated 5 on a trade where Revenge was recorded."]);
+    expect(q.score).toBe(100);
+    expect(q.notes).toHaveLength(1);
   });
 });
 

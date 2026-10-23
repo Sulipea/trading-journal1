@@ -14,6 +14,8 @@ const row = (netPnl: number, reasoning = "secret reasoning text"): AnalyticsRow 
   quality: computeTradeQuality({
     checks: [],
     overrideCount: 0,
+    autoViolations: [],
+    stopAtEntry: null,
     executionRating: 4,
     plannedStop: 4995,
     plannedRisk: 250,

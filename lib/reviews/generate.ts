@@ -10,6 +10,7 @@ import { forecastAccuracy, type ForecastWithRevisions } from "@/lib/analytics/fo
 import { detectPatterns, type Pattern } from "@/lib/analytics/patterns";
 import { groupStats, MIN_SAMPLE } from "@/lib/analytics/stats";
 import { drawdown } from "@/lib/calculations/performance";
+import { AUTO_VIOLATION_LABELS, type AutoViolationKind } from "@/lib/calculations/process-checks";
 import { REQUIRABLE_FIELD_LABELS } from "@/lib/domain/defaults";
 import type { EntityId, FindingKind, ReviewKind, ReviewSection, RuleCheck } from "@/lib/domain/types";
 
@@ -149,7 +150,8 @@ export function generateReviewFindings(input: ReviewInput): FindingDraft[] {
   });
 
   // ── mistakes & rules ───────────────────────────────────────────────────
-  const checked = rows.filter((r) => r.ruleChecks > 0);
+  // A trade counts as checked when it has checklist answers or its data shows a violation.
+  const checked = rows.filter((r) => r.ruleChecks > 0 || r.violations > 0);
   if (checked.length === 0) {
     add({
       key: "rules.none",
@@ -180,6 +182,21 @@ export function generateReviewFindings(input: ReviewInput): FindingDraft[] {
       byRule.set(c.ruleId, [...(byRule.get(c.ruleId) ?? []), c]);
     }
     const pnlOf = new Map(rows.map((r) => [r.trade.id, r.netPnl]));
+    const byKind = new Map<AutoViolationKind, EntityId[]>();
+    for (const r of rows) {
+      for (const v of r.quality.autoViolations) byKind.set(v.kind, [...(byKind.get(v.kind) ?? []), r.trade.id]);
+    }
+    for (const [kind, tradeIds] of byKind) {
+      const net = tradeIds.reduce((s, id) => s + (pnlOf.get(id) ?? 0), 0);
+      add({
+        key: `rules.auto:${kind}`,
+        section: "RULES",
+        kind: "OBSERVATION",
+        title: `${AUTO_VIOLATION_LABELS[kind]}: ${plural(tradeIds.length, "trade")}`,
+        detail: `Found from the trade data, not the checklist · those trades netted ${money(net)}.`,
+        tradeIds,
+      });
+    }
     [...byRule]
       .sort((a, b) => b[1].length - a[1].length)
       .slice(0, 3)
@@ -260,6 +277,17 @@ export function generateReviewFindings(input: ReviewInput): FindingDraft[] {
         tradeIds: worstEmotion.tradeIds,
       });
     }
+  }
+  const conflicted = rows.filter((r) => r.quality.notes.length > 0);
+  if (conflicted.length) {
+    add({
+      key: "psych.discipline-conflict",
+      section: "PSYCHOLOGY",
+      kind: "OBSERVATION",
+      title: `Discipline rated 5 alongside Revenge or FOMO on ${plural(conflicted.length, "trade")}`,
+      detail: "The rating and the emotions disagree. Worth a second look at what really happened.",
+      tradeIds: ids(conflicted),
+    });
   }
   if (worst && worst.netPnl < 0) {
     add({

@@ -187,6 +187,19 @@ export const MIGRATIONS: readonly Migration[] = [
         });
     },
   },
+  {
+    // Whether a stop was attached at entry, for risk scoring. Existing trades stay "not recorded".
+    version: 11,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table("trades")
+        .toCollection()
+        .modify((trade: Record<string, unknown>) => {
+          trade.stopAtEntry ??= null;
+        });
+    },
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

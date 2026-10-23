@@ -24,6 +24,7 @@ export function makeTrade(overrides: Partial<Trade> = {}): Trade {
     finalTarget: null,
     fees: 0,
     netPnlOverride: null,
+    stopAtEntry: null,
     rMultipleOverride: null,
     newsDay: null,
     newsEvent: "",

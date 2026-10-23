@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { AUTO_VIOLATION_LABELS } from "@/lib/calculations/process-checks";
 import { PROCESS_OUTCOME_LABELS, QUALITY_WEIGHTS, type QualityComponents } from "@/lib/calculations/quality";
 import { cn } from "@/lib/ui/cn";
 import { useWorkspace } from "./context";
@@ -13,7 +14,7 @@ const COMPONENT_LABELS: Record<keyof QualityComponents, string> = {
 
 export function QualityCard() {
   const { ws } = useWorkspace();
-  const { quality } = ws;
+  const { quality, trade } = ws;
   return (
     <Card className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -54,6 +55,27 @@ export function QualityCard() {
           );
         })}
       </dl>
+      {quality.autoViolations.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium">Found in the trade data</h3>
+          <ul className="mt-1 space-y-1 text-xs" aria-label="Violations found in the trade data">
+            {quality.autoViolations.map((v) => (
+              <li key={v.kind} className="rounded-md border border-negative/40 px-2 py-1">
+                <span className="font-medium">{AUTO_VIOLATION_LABELS[v.kind]}</span>{" "}
+                <span className="text-muted">· {v.severity.toLowerCase()} · {v.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {quality.notes.map((note) => (
+        <p key={note} className="rounded-md bg-surface-muted px-3 py-1.5 text-xs">
+          {note}
+        </p>
+      ))}
+      {trade.stopAtEntry === null && (
+        <p className="text-xs text-muted">Record whether a stop was attached at entry (Execution) to complete risk scoring.</p>
+      )}
       <p className="text-xs text-muted">
         Unscored parts are left out: answer the checklist, rate execution and plan a stop to complete the score.
       </p>

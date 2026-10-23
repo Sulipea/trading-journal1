@@ -17,6 +17,8 @@ const quality = (executionRating: number | null) =>
   computeTradeQuality({
     checks: [],
     overrideCount: 0,
+    autoViolations: [],
+    stopAtEntry: null,
     executionRating,
     plannedStop: null,
     plannedRisk: null,
@@ -127,6 +129,15 @@ describe("buildAnalyticsRows", () => {
       forecastAdherence: "PARTIAL",
       conditionTags: ["trending"],
     });
+  });
+
+  it("marks a trade as violating when its data shows a violation, with no checklist answers", () => {
+    const q = { ...quality(4), autoViolations: [{ kind: "NO_STOP_AT_ENTRY" as const, severity: "HIGH" as const, detail: "" }] };
+    const ctx = { timezone: "America/New_York", sessions: DEFAULT_SESSIONS, setups: [], psychology: [], checks: [], links: [], revisions: [] };
+    const [flagged] = buildAnalyticsRows([{ trade: makeTrade(), netPnl: -100, rMultiple: -1, quality: q }], ctx);
+    expect(flagged).toMatchObject({ ruleChecks: 0, violations: 1, ruleAdherence: "VIOLATED" });
+    const [unchecked] = buildAnalyticsRows([{ trade: makeTrade(), netPnl: -100, rMultiple: -1, quality: quality(4) }], ctx);
+    expect(unchecked).toMatchObject({ violations: 0, ruleAdherence: "UNCHECKED" });
   });
 
   it("reads zoned parts across midnight", () => {

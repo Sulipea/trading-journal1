@@ -102,3 +102,31 @@ test("trash, restore and permanent delete", async ({ page }) => {
   await expect(page.getByText("ESZ6 permanently deleted.")).toBeVisible();
   await expect(page.getByText("The trash is empty.")).toBeVisible();
 });
+
+test("trade quality reflects what the data shows, not just what was ticked", async ({ page }) => {
+  await requireOnlyPlannedStop(page);
+  await openQuickTrade(page);
+  // 2 ES long from 5000 with a 4-point stop ($400 planned), covered 7.5 points past it: −$1,150.
+  const timeline = page.locator("section", { hasText: "Timeline" });
+  await timeline.getByLabel("Price").fill("4988.5");
+  await timeline.getByRole("button", { name: "Add fill" }).click();
+  await expect(page.getByText("Position is flat. Before closing, complete: Planned stop.")).toBeVisible();
+  const risk = page.locator("details", { hasText: "Planned vs actual" });
+  await risk.getByLabel("Planned stop").fill("4996");
+  await risk.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Close trade" }).click();
+  await expect(page.getByText("Trade closed.")).toBeVisible();
+
+  // Closed trades can still record whether a stop was attached at entry.
+  const execution = page.locator("details", { hasText: "Execution rating" });
+  await execution.locator("summary").click();
+  await execution.getByLabel("Stop attached at entry").selectOption("no");
+  await execution.getByRole("button", { name: "Save" }).click();
+
+  const flags = page.getByRole("list", { name: "Violations found in the trade data" });
+  await expect(flags).toContainText("No stop attached at entry");
+  await expect(flags).toContainText("Loss bigger than planned risk");
+  await expect(flags).toContainText("Lost 2.88R ($1,150.00 against $400.00 planned).");
+  await expect(flags).toContainText("Held past the planned stop");
+  await expect(page.getByText("Poor process · loss", { exact: true })).toBeVisible();
+});

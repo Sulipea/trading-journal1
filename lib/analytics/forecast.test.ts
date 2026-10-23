@@ -135,6 +135,8 @@ describe("execution against forecast", () => {
     quality: computeTradeQuality({
       checks: [],
       overrideCount: 0,
+      autoViolations: [],
+      stopAtEntry: null,
       executionRating: null,
       plannedStop: null,
       plannedRisk: null,

@@ -13,6 +13,8 @@ const quality = (executionRating: number | null, netPnl: number | null = null) =
   computeTradeQuality({
     checks: [],
     overrideCount: 0,
+    autoViolations: [],
+    stopAtEntry: null,
     executionRating,
     plannedStop: 4995,
     plannedRisk: 250,
@@ -68,6 +70,55 @@ describe("periods", () => {
 });
 
 describe("generateReviewFindings", () => {
+  it("counts violations found in the trade data, even when every ticked rule was followed", () => {
+    const ruleId = newId();
+    const unprotected = row(-1150, {
+      ruleChecks: 1,
+      violations: 2,
+      ruleAdherence: "VIOLATED",
+      quality: computeTradeQuality(
+        {
+          checks: [{ severity: "HIGH", status: "FOLLOWED" }],
+          overrideCount: 0,
+          autoViolations: [
+            { kind: "NO_STOP_AT_ENTRY", severity: "HIGH", detail: "" },
+            { kind: "LOSS_BEYOND_PLANNED_RISK", severity: "HIGH", detail: "" },
+          ],
+          stopAtEntry: false,
+          executionRating: 2,
+          plannedStop: 4995,
+          plannedRisk: 400,
+          actualRisk: 400,
+          plannedContracts: 2,
+          maxOpenQuantity: 2,
+          rMultiple: -2.875,
+          netPnl: -1150,
+        },
+        ["Discipline rated 5 on a trade where Revenge was recorded."],
+      ),
+    });
+    const clean = row(200, { ruleChecks: 1, ruleAdherence: "CLEAN" });
+    const check: RuleCheck = {
+      id: newId(),
+      createdAt: T,
+      updatedAt: T,
+      tradeId: unprotected.trade.id,
+      ruleId,
+      ruleName: "Enter on retrace",
+      severity: "HIGH",
+      status: "FOLLOWED",
+      acknowledged: false,
+      reason: "",
+    };
+    const findings = generateReviewFindings({ kind: "WEEKLY", rows: [unprotected, clean], previousRows: [], checks: [check], forecasts: [] });
+    const titles = findings.map((f) => f.title);
+    expect(titles).toContain("1 of 2 checked trades broke at least one rule");
+    expect(titles).toContain("No stop attached at entry: 1 trade");
+    expect(titles).toContain("Loss bigger than planned risk: 1 trade");
+    expect(titles).toContain("Discipline rated 5 alongside Revenge or FOMO on 1 trade");
+    expect(unprotected.quality.processOutcome).toBe("POOR_PROCESS_LOSS");
+  });
+
   it("covers every section with stable keys and evidence", () => {
     const ruleId = newId();
     const loser = row(-300, { ruleChecks: 1, violations: 1, ruleAdherence: "VIOLATED", emotions: ["FOMO"], forecastAdherence: "UNPLANNED" });

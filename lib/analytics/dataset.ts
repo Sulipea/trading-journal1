@@ -33,6 +33,7 @@ export interface AnalyticsRow extends TradeResultRow {
   /** Phase → rating name → 1–5. */
   ratings: Partial<Record<PsychologyPhase, Record<string, number>>>;
   ruleChecks: number;
+  /** Checklist violations plus violations found in the trade data (no stop, loss past plan…). */
   violations: number;
   ruleAdherence: RuleAdherence;
   forecastAdherence: ForecastAdherenceKey;
@@ -105,7 +106,8 @@ export function buildAnalyticsRows(rows: readonly TradeResultRow[], ctx: Dataset
     const entry = zonedParts(trade.openedAt, ctx.timezone);
     const psych = psychByTrade.get(trade.id) ?? [];
     const checks = checksByTrade.get(trade.id) ?? [];
-    const violations = checks.filter((c) => c.status === "VIOLATED").length;
+    const autoViolations = row.quality.autoViolations.length;
+    const violations = checks.filter((c) => c.status === "VIOLATED").length + autoViolations;
     const link = linkByTrade.get(trade.id);
 
     let conditionTags: string[] = [];
@@ -126,7 +128,7 @@ export function buildAnalyticsRows(rows: readonly TradeResultRow[], ctx: Dataset
       ratings: Object.fromEntries(psych.map((p) => [p.phase, p.ratings])),
       ruleChecks: checks.length,
       violations,
-      ruleAdherence: checks.length === 0 ? "UNCHECKED" : violations > 0 ? "VIOLATED" : "CLEAN",
+      ruleAdherence: violations > 0 ? "VIOLATED" : checks.length === 0 ? "UNCHECKED" : "CLEAN",
       forecastAdherence: !link ? "UNLINKED" : !link.planned ? "UNPLANNED" : (link.adherence ?? "UNLINKED"),
       conditionTags,
     };

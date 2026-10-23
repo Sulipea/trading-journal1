@@ -70,6 +70,7 @@ describe("schema migrations", () => {
       vixLevel: null,
       vixDirection: null,
       rMultipleOverride: null,
+      stopAtEntry: null,
     });
 
     const settings = appSettingsSchema.parse(await db.appSettings.get(APP_SETTINGS_ID));

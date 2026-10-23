@@ -111,6 +111,8 @@ export const tradeSchema = z.object({
   executionNotes: z.string(),
   /** Self-assessed execution, 1 (poor) – 5 (excellent). */
   executionRating: rating.nullable(),
+  /** Was a stop order attached when the trade was entered? null = not recorded. */
+  stopAtEntry: z.boolean().nullable(),
 
   notes: z.string(),
 

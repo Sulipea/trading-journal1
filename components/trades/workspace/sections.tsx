@@ -526,6 +526,7 @@ function ExecutionSection() {
             {
               executionRating: formNumber(form, "executionRating"),
               executionNotes: formText(form, "executionNotes"),
+              stopAtEntry: formYesNo(form, "stopAtEntry"),
             },
             trade.id,
           )
@@ -549,9 +550,20 @@ function ExecutionSection() {
             </Select>
           </Field>
           <Field
+            label="Stop attached at entry"
+            htmlFor="stopAtEntry"
+            hint="Was a stop order working from the moment you were filled? Used in the risk score."
+          >
+            <Select id="stopAtEntry" name="stopAtEntry" defaultValue={yesNoValue(trade.stopAtEntry)}>
+              <option value="">—</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Select>
+          </Field>
+          <Field
             label="Execution notes"
             htmlFor="executionNotes"
-            className="md:col-span-2"
+            className="md:col-span-3"
             required={f.isRequired("executionNotes")}
             error={f.isMissing("executionNotes") ? missingText : null}
           >

@@ -35,6 +35,8 @@ describe("analytics performance", () => {
         quality: computeTradeQuality({
           checks: [],
           overrideCount: 0,
+          autoViolations: [],
+          stopAtEntry: null,
           executionRating: (i % 5) + 1,
           plannedStop: null,
           plannedRisk: null,

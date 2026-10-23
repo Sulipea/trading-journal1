@@ -33,7 +33,7 @@ import type { JournalRepositories } from "@/lib/repositories/types";
 import { applicableRules } from "@/lib/domain/checklist";
 import { checkCloseReadiness, type CloseReadiness } from "./close-validation";
 import { computeTradeMetrics, type TradeMetrics } from "./trade-metrics";
-import { qualityForTrade } from "./trade-quality";
+import { qualityForTrade, type QualityContext } from "./trade-quality";
 import type { TradeQuality } from "@/lib/calculations/quality";
 import { suggestSetupForTrade } from "@/lib/analytics/setup-discovery";
 import type { TradeResultRow } from "@/lib/analytics/stats";
@@ -90,6 +90,7 @@ export type EditableTradeFields = Pick<
   | "reasoning"
   | "executionNotes"
   | "executionRating"
+  | "stopAtEntry"
   | "notes"
 >;
 export type TradePatch = Partial<EditableTradeFields>;
@@ -307,6 +308,7 @@ export async function createQuickTrade(
     finalTarget: null,
     fees: 0,
     netPnlOverride: null,
+    stopAtEntry: null,
     rMultipleOverride: null,
     executionNotes: "",
     executionRating: null,
@@ -653,6 +655,7 @@ export async function loadTradeWorkspace(
       repos.forecasts.getLinkForTrade(tradeId),
     ]);
   const metrics = computeTradeMetrics(trade, events);
+  const revisions = forecastLink?.forecastId ? await repos.forecasts.listRevisions(forecastLink.forecastId) : [];
   return {
     trade,
     events,
@@ -670,7 +673,12 @@ export async function loadTradeWorkspace(
       forecastLink: forecastLink ?? null,
     }),
     metrics,
-    quality: qualityForTrade(trade, metrics, ruleContext.ruleChecks),
+    quality: qualityForTrade(trade, metrics, ruleContext.ruleChecks, {
+      events,
+      link: forecastLink ?? null,
+      revisions,
+      psychology,
+    }),
     setup: ruleContext.setup,
     setups,
     rules: ruleContext.rules,
@@ -694,19 +702,21 @@ export async function listTradeRows(
 ): Promise<TradeListRow[]> {
   const all = await repos.trades.list({ includeDeleted: options.deleted });
   const trades = options.deleted ? all.filter((t) => t.deletedAt !== null) : all;
-  const [events, checks, setups] = await Promise.all([
+  const [events, checks, setups, context] = await Promise.all([
     repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
     repos.ruleChecks.listAll(),
     repos.setups.list(),
+    loadQualityContext(repos),
   ]);
   const checksByTrade = groupBy(checks, (c) => c.tradeId);
   const setupNames = new Map(setups.map((s) => [s.id, s.name]));
   return trades.map((trade) => {
-    const metrics = computeTradeMetrics(trade, events.get(trade.id) ?? []);
+    const tradeEvents = events.get(trade.id) ?? [];
+    const metrics = computeTradeMetrics(trade, tradeEvents);
     return {
       trade,
       metrics,
-      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? []),
+      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? [], context.forTrade(trade.id, tradeEvents)),
       setupName: trade.setupId ? (setupNames.get(trade.setupId) ?? null) : null,
     };
   });
@@ -721,24 +731,49 @@ export async function loadClosedResultRows(repos: JournalRepositories): Promise<
   checks: RuleCheck[];
 }> {
   const trades = await repos.trades.listClosed();
-  const [events, checks] = await Promise.all([
+  const [events, checks, context] = await Promise.all([
     repos.tradeEvents.listForTrades(trades.map((t) => t.id)),
     repos.ruleChecks.listAll(),
+    loadQualityContext(repos),
   ]);
   const checksByTrade = groupBy(checks, (c) => c.tradeId);
   const rows: TradeResultRow[] = [];
   for (const trade of trades) {
-    const metrics = computeTradeMetrics(trade, events.get(trade.id) ?? []);
+    const tradeEvents = events.get(trade.id) ?? [];
+    const metrics = computeTradeMetrics(trade, tradeEvents);
     if (!metrics.fills?.isFlat) continue;
     rows.push({
       trade,
       netPnl: metrics.fills.netPnl,
       rMultiple: metrics.rMultiple,
-      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? []),
+      quality: qualityForTrade(trade, metrics, checksByTrade.get(trade.id) ?? [], context.forTrade(trade.id, tradeEvents)),
     });
   }
   const closedIds = new Set(rows.map((r) => r.trade.id));
   return { rows, checks: checks.filter((c) => closedIds.has(c.tradeId)) };
+}
+
+/** Forecast links, revisions and psychology for scoring many trades at once. */
+async function loadQualityContext(repos: JournalRepositories) {
+  const [links, revisions, psychology] = await Promise.all([
+    repos.forecasts.listAllLinks(),
+    repos.forecasts.listAllRevisions(),
+    repos.psychology.listAll(),
+  ]);
+  const linkByTrade = new Map(links.map((l) => [l.tradeId, l]));
+  const revisionsByForecast = groupBy(revisions, (r) => r.forecastId);
+  const psychologyByTrade = groupBy(psychology, (p) => p.tradeId);
+  return {
+    forTrade(tradeId: EntityId, events: readonly TradeEvent[]): QualityContext {
+      const link = linkByTrade.get(tradeId) ?? null;
+      return {
+        events,
+        link,
+        revisions: link?.forecastId ? (revisionsByForecast.get(link.forecastId) ?? []) : [],
+        psychology: psychologyByTrade.get(tradeId) ?? [],
+      };
+    },
+  };
 }
 
 function groupBy<T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> {
